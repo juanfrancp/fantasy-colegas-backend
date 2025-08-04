@@ -1,14 +1,19 @@
 package com.fantasycolegas.fantasy_colegas_backend.controller;
 
+import com.fantasycolegas.fantasy_colegas_backend.dto.PasswordUpdateDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.UserUpdateDto;
 import com.fantasycolegas.fantasy_colegas_backend.model.User;
 import com.fantasycolegas.fantasy_colegas_backend.repository.UserRepository;
+import com.fantasycolegas.fantasy_colegas_backend.security.CustomUserDetails;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Optional;
 
@@ -52,5 +57,45 @@ public class UserController {
 
         userRepository.save(user);
         return ResponseEntity.ok(user);
+    }
+
+    @PreAuthorize("isAuthenticated() and #id == principal.id")
+    @PutMapping("/{id}/password")
+    public ResponseEntity<User> updatePassword(@PathVariable Long id, @Valid @RequestBody PasswordUpdateDto passwordUpdateDto,
+                                               @AuthenticationPrincipal CustomUserDetails currentUser) {
+
+        // 1. Encontrar el usuario por su ID
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+
+        // 2. Verificar que la contraseña antigua coincida
+        if (!passwordEncoder.matches(passwordUpdateDto.getOldPassword(), user.getPassword())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La contraseña antigua es incorrecta");
+        }
+
+        // 3. Codificar y establecer la nueva contraseña
+        String newEncodedPassword = passwordEncoder.encode(passwordUpdateDto.getNewPassword());
+        user.setPassword(newEncodedPassword);
+
+        // 4. Guardar el usuario actualizado
+        User updatedUser = userRepository.save(user);
+
+        return ResponseEntity.ok(updatedUser);
+    }
+
+    @PreAuthorize("isAuthenticated() and #id == principal.id")
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
+
+        // 1. Verificar si el usuario existe antes de intentar eliminar
+        if (!userRepository.existsById(id)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado");
+        }
+
+        // 2. Eliminar el usuario por su ID
+        userRepository.deleteById(id);
+
+        // 3. Devolver una respuesta exitosa sin contenido (204 No Content)
+        return ResponseEntity.noContent().build();
     }
 }
