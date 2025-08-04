@@ -40,15 +40,4 @@ public class AuthService {
 
         return userRepository.save(user);
     }
-
-    public String loginUser(LoginDto loginDto) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        loginDto.getUsernameOrEmail(),
-                        loginDto.getPassword()
-                )
-        );
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-        return "User signed in successfully!";
-    }
 }
