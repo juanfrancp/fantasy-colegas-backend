@@ -1,7 +1,7 @@
 package com.fantasycolegas.fantasy_colegas_backend.controller;
 
-import com.fantasycolegas.fantasy_colegas_backend.dto.PasswordUpdateDto;
-import com.fantasycolegas.fantasy_colegas_backend.dto.UserUpdateDto;
+import com.fantasycolegas.fantasy_colegas_backend.dto.request.PasswordUpdateDto;
+import com.fantasycolegas.fantasy_colegas_backend.dto.request.UserUpdateDto;
 import com.fantasycolegas.fantasy_colegas_backend.model.User;
 import com.fantasycolegas.fantasy_colegas_backend.repository.UserRepository;
 import com.fantasycolegas.fantasy_colegas_backend.security.CustomUserDetails;

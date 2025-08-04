@@ -1,7 +1,7 @@
 package com.fantasycolegas.fantasy_colegas_backend.controller;
 
-import com.fantasycolegas.fantasy_colegas_backend.dto.LoginDto;
-import com.fantasycolegas.fantasy_colegas_backend.dto.RegisterDto;
+import com.fantasycolegas.fantasy_colegas_backend.dto.request.LoginDto;
+import com.fantasycolegas.fantasy_colegas_backend.dto.request.RegisterDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.response.AuthResponse;
 import com.fantasycolegas.fantasy_colegas_backend.service.AuthService;
 import com.fantasycolegas.fantasy_colegas_backend.service.CustomUserDetailsService;

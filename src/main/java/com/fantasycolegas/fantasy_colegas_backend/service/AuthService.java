@@ -1,7 +1,7 @@
 // AuthService.java
 package com.fantasycolegas.fantasy_colegas_backend.service;
 
-import com.fantasycolegas.fantasy_colegas_backend.dto.RegisterDto;
+import com.fantasycolegas.fantasy_colegas_backend.dto.request.RegisterDto;
 import com.fantasycolegas.fantasy_colegas_backend.model.User;
 import com.fantasycolegas.fantasy_colegas_backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;

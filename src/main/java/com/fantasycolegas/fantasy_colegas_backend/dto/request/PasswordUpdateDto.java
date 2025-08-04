@@ -1,4 +1,4 @@
-package com.fantasycolegas.fantasy_colegas_backend.dto;
+package com.fantasycolegas.fantasy_colegas_backend.dto.request;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
