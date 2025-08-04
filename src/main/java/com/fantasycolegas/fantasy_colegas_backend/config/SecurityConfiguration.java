@@ -32,7 +32,7 @@ public class SecurityConfiguration {
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/h2-console/**").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/leagues").authenticated()
+                        .requestMatchers("/api/leagues/**").authenticated()
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session
