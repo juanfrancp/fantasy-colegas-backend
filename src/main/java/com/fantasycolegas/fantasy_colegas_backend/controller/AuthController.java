@@ -2,11 +2,16 @@ package com.fantasycolegas.fantasy_colegas_backend.controller;
 
 import com.fantasycolegas.fantasy_colegas_backend.dto.LoginDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.RegisterDto;
-import com.fantasycolegas.fantasy_colegas_backend.model.User;
+import com.fantasycolegas.fantasy_colegas_backend.dto.response.AuthResponse;
 import com.fantasycolegas.fantasy_colegas_backend.service.AuthService;
+import com.fantasycolegas.fantasy_colegas_backend.service.CustomUserDetailsService;
+import com.fantasycolegas.fantasy_colegas_backend.util.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -17,25 +22,41 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     @Autowired
+    private AuthenticationManager authenticationManager;
+
+    @Autowired
+    private CustomUserDetailsService userDetailsService;
+
+    @Autowired
+    private JwtUtil jwtUtil;
+
+    @Autowired
     private AuthService authService;
 
-    @PostMapping("/register")
-    public ResponseEntity<String> registerUser(@RequestBody RegisterDto registerDto) {
+    @PostMapping("/login")
+    public ResponseEntity<?> createAuthenticationToken(@RequestBody LoginDto loginDto) throws Exception {
         try {
-            User newUser = authService.registerUser(registerDto);
-            return new ResponseEntity<>("User registered successfully", HttpStatus.CREATED);
-        } catch (RuntimeException e) {
-            return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(loginDto.getUsernameOrEmail(), loginDto.getPassword())
+            );
+        } catch (Exception e) {
+            throw new Exception("Incorrect username or password", e);
         }
+
+        final UserDetails userDetails = userDetailsService
+                .loadUserByUsername(loginDto.getUsernameOrEmail());
+
+        final String jwt = jwtUtil.generateToken(userDetails);
+
+        return ResponseEntity.ok(new AuthResponse(jwt));
     }
 
-    @PostMapping("/login")
-    public ResponseEntity<String> loginUser(@RequestBody LoginDto loginDto) {
-        try {
-            String token = authService.loginUser(loginDto);
-            return new ResponseEntity<>(token, HttpStatus.OK);
-        } catch (Exception e) {
-            return new ResponseEntity<>("Invalid credentials", HttpStatus.UNAUTHORIZED);
+    @PostMapping("/register")
+    public ResponseEntity<?> registerUser(@RequestBody RegisterDto registerDto) {
+        if (authService.registerUser(registerDto)) {
+            return new ResponseEntity<>("User registered successfully", HttpStatus.OK);
+        } else {
+            return new ResponseEntity<>("Username or email already in use", HttpStatus.BAD_REQUEST);
         }
     }
 }
