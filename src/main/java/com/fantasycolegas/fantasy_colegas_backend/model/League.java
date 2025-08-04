@@ -1,13 +1,18 @@
 package com.fantasycolegas.fantasy_colegas_backend.model;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
+import java.util.Objects;
 import java.util.Set;
 
 @Entity
 @Table(name = "leagues")
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class League {
 
     @Id
@@ -44,4 +49,19 @@ public class League {
     // Relación con Player: Una liga tiene muchos jugadores
     @OneToMany(mappedBy = "league", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<Player> players;
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        League league = (League) o;
+        // Solo compara por el ID
+        return id != null && Objects.equals(id, league.id);
+    }
+
+    @Override
+    public int hashCode() {
+        // Solo usa el ID para el hash
+        return getClass().hashCode();
+    }
 }

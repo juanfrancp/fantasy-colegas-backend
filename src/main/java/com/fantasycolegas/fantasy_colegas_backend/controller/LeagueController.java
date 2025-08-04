@@ -1,5 +1,6 @@
 package com.fantasycolegas.fantasy_colegas_backend.controller;
 
+import com.fantasycolegas.fantasy_colegas_backend.dto.request.JoinLeagueDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.request.LeagueCreateDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.response.LeagueResponseDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.response.UserResponseDto;
@@ -8,6 +9,7 @@ import com.fantasycolegas.fantasy_colegas_backend.model.User;
 import com.fantasycolegas.fantasy_colegas_backend.repository.LeagueRepository;
 import com.fantasycolegas.fantasy_colegas_backend.repository.UserRepository;
 import com.fantasycolegas.fantasy_colegas_backend.security.CustomUserDetails;
+import com.fantasycolegas.fantasy_colegas_backend.service.LeagueService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -30,6 +32,26 @@ public class LeagueController {
 
     @Autowired
     private UserRepository userRepository;
+
+    private final LeagueService leagueService;
+
+    // Inyección de dependencias
+    public LeagueController(LeagueService leagueService) {
+        this.leagueService = leagueService;
+    }
+
+    // Endpoint para unirse a una liga
+    @PostMapping("/join")
+    public ResponseEntity<LeagueResponseDto> joinLeague(@RequestBody JoinLeagueDto joinLeagueDto,
+                                                        @AuthenticationPrincipal CustomUserDetails userDetails) {
+        try {
+            LeagueResponseDto joinedLeague = leagueService.joinLeague(joinLeagueDto.getJoinCode(), userDetails.getId());
+            return ResponseEntity.ok(joinedLeague);
+        } catch (RuntimeException e) {
+            // Manejar excepciones de negocio, como liga no encontrada o usuario ya en la liga
+            return ResponseEntity.badRequest().body(null); // O un DTO de error más específico
+        }
+    }
 
 
     // Helper method para mapear la entidad a DTO
