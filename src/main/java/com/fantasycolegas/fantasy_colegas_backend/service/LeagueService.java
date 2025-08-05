@@ -3,10 +3,8 @@ package com.fantasycolegas.fantasy_colegas_backend.service;
 import com.fantasycolegas.fantasy_colegas_backend.dto.request.LeagueCreateDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.response.LeagueResponseDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.response.UserResponseDto;
-import com.fantasycolegas.fantasy_colegas_backend.model.League;
-import com.fantasycolegas.fantasy_colegas_backend.model.LeagueRole;
-import com.fantasycolegas.fantasy_colegas_backend.model.User;
-import com.fantasycolegas.fantasy_colegas_backend.model.UserLeagueRole;
+import com.fantasycolegas.fantasy_colegas_backend.model.*;
+import com.fantasycolegas.fantasy_colegas_backend.repository.LeagueJoinRequestRepository;
 import com.fantasycolegas.fantasy_colegas_backend.repository.LeagueRepository;
 import com.fantasycolegas.fantasy_colegas_backend.repository.UserLeagueRoleRepository;
 import com.fantasycolegas.fantasy_colegas_backend.repository.UserRepository;
@@ -15,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -28,14 +27,15 @@ public class LeagueService {
     private final LeagueRepository leagueRepository;
     private final UserRepository userRepository;
     private final UserLeagueRoleRepository userLeagueRoleRepository;
+    private final LeagueJoinRequestRepository leagueJoinRequestRepository;
 
-    public LeagueService(LeagueRepository leagueRepository, UserRepository userRepository, UserLeagueRoleRepository userLeagueRoleRepository) {
+    public LeagueService(LeagueRepository leagueRepository, UserRepository userRepository, UserLeagueRoleRepository userLeagueRoleRepository, LeagueJoinRequestRepository leagueJoinRequestRepository) {
         this.leagueRepository = leagueRepository;
         this.userRepository = userRepository;
         this.userLeagueRoleRepository = userLeagueRoleRepository;
+        this.leagueJoinRequestRepository = leagueJoinRequestRepository;
     }
 
-    // Método para crear una liga (CORREGIDO Y OPTIMIZADO)
     @Transactional
     public LeagueResponseDto createLeague(League newLeague, Long userId) {
         User creator = userRepository.findById(userId)
@@ -57,16 +57,19 @@ public class LeagueService {
         return mapToLeagueResponseDto(reloadedLeague);
     }
 
-    // Método para unirse a una liga
     @Transactional
     public LeagueResponseDto joinLeague(String joinCode, Long userId) {
         League league = leagueRepository.findByJoinCode(joinCode)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Código de invitación inválido o la liga no existe"));
 
+        if (league.isPrivate()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "La liga es privada y requiere una solicitud de unión");
+        }
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
 
-        // Verificamos si el usuario ya tiene un rol en la liga (admin o participant)
+        // Verificamos si el usuario ya tiene un rol en la liga
         if (userLeagueRoleRepository.existsByLeagueIdAndUserId(league.getId(), user.getId())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "El usuario ya es un participante de esta liga");
         }
@@ -80,7 +83,73 @@ public class LeagueService {
         return mapToLeagueResponseDto(updatedLeague);
     }
 
-    // Método para obtener una liga por su ID
+    @Transactional
+    public void sendJoinRequest(Long leagueId, Long userId) {
+        League league = leagueRepository.findById(leagueId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Liga no encontrada"));
+
+        if (!league.isPrivate()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Esta liga no es privada, no necesita solicitud");
+        }
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+
+        // Verificamos si ya existe una solicitud pendiente
+        if (leagueJoinRequestRepository.findByUserAndLeagueAndStatus(user, league, RequestStatus.PENDING).isPresent()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Ya tienes una solicitud de unión pendiente para esta liga");
+        }
+
+        // Creamos y guardamos la nueva solicitud
+        LeagueJoinRequest request = new LeagueJoinRequest();
+        request.setUser(user);
+        request.setLeague(league);
+        request.setRequestDate(LocalDateTime.now());
+        request.setStatus(RequestStatus.PENDING);
+        leagueJoinRequestRepository.save(request);
+    }
+
+    // Nuevo método: Obtener solicitudes pendientes (solo para admins)
+    @Transactional
+    public List<LeagueJoinRequest> getPendingJoinRequests(Long leagueId) {
+        League league = leagueRepository.findById(leagueId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Liga no encontrada"));
+
+        return leagueJoinRequestRepository.findByLeagueAndStatus(league, RequestStatus.PENDING);
+    }
+
+    // Nuevo método: Aceptar una solicitud
+    @Transactional
+    public void acceptJoinRequest(Long requestId) {
+        LeagueJoinRequest request = leagueJoinRequestRepository.findById(requestId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Solicitud no encontrada"));
+
+        // Marcar la solicitud como aceptada
+        request.setStatus(RequestStatus.ACCEPTED);
+        leagueJoinRequestRepository.save(request);
+
+        // Añadir al usuario como participante
+        User user = request.getUser();
+        League league = request.getLeague();
+
+        UserLeagueRole participantRole = new UserLeagueRole(user, league, LeagueRole.PARTICIPANT);
+        userLeagueRoleRepository.save(participantRole);
+
+        // Actualizar el número de jugadores
+        league.setNumberOfPlayers(league.getNumberOfPlayers() + 1);
+        leagueRepository.save(league);
+    }
+
+    // Nuevo método: Rechazar una solicitud
+    @Transactional
+    public void rejectJoinRequest(Long requestId) {
+        LeagueJoinRequest request = leagueJoinRequestRepository.findById(requestId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Solicitud no encontrada"));
+
+        // Eliminar la solicitud
+        leagueJoinRequestRepository.delete(request);
+    }
+
     @Transactional
     public LeagueResponseDto getLeagueById(Long id) {
         League league = leagueRepository.findById(id)

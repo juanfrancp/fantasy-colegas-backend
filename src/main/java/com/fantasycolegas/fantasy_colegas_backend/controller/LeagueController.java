@@ -2,9 +2,12 @@ package com.fantasycolegas.fantasy_colegas_backend.controller;
 
 import com.fantasycolegas.fantasy_colegas_backend.dto.request.JoinLeagueDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.request.LeagueCreateDto;
+import com.fantasycolegas.fantasy_colegas_backend.dto.response.ErrorResponse;
+import com.fantasycolegas.fantasy_colegas_backend.dto.response.JoinRequestResponseDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.response.LeagueResponseDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.response.UserResponseDto;
 import com.fantasycolegas.fantasy_colegas_backend.model.League;
+import com.fantasycolegas.fantasy_colegas_backend.model.LeagueJoinRequest;
 import com.fantasycolegas.fantasy_colegas_backend.model.User;
 import com.fantasycolegas.fantasy_colegas_backend.repository.LeagueRepository;
 import com.fantasycolegas.fantasy_colegas_backend.repository.UserRepository;
@@ -36,13 +39,59 @@ public class LeagueController {
 
     // Endpoint para unirse a una liga
     @PostMapping("/join")
-    public ResponseEntity<LeagueResponseDto> joinLeague(@RequestBody JoinLeagueDto joinLeagueDto,
-                                                        @AuthenticationPrincipal CustomUserDetails userDetails) {
+    public ResponseEntity<?> joinLeague(@RequestBody JoinLeagueDto joinLeagueDto,
+                                        @AuthenticationPrincipal CustomUserDetails userDetails) {
         try {
             LeagueResponseDto joinedLeague = leagueService.joinLeague(joinLeagueDto.getJoinCode(), userDetails.getId());
             return ResponseEntity.ok(joinedLeague);
-        } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(null);
+        } catch (ResponseStatusException e) {
+            // Devolvemos el status code y el mensaje de error en el cuerpo
+            return ResponseEntity.status(e.getStatusCode()).body(new ErrorResponse(e.getReason()));
+        }
+    }
+
+    @PostMapping("/{leagueId}/request-join")
+    public ResponseEntity<?> sendJoinRequest(@PathVariable Long leagueId,
+                                             @AuthenticationPrincipal CustomUserDetails userDetails) {
+        try {
+            leagueService.sendJoinRequest(leagueId, userDetails.getId());
+            return ResponseEntity.ok().build();
+        } catch (ResponseStatusException e) {
+            return ResponseEntity.status(e.getStatusCode()).body(new ErrorResponse(e.getReason()));
+        }
+    }
+
+    @PreAuthorize("@leagueService.checkIfUserIsAdmin(#leagueId, principal.id)")
+    @GetMapping("/{leagueId}/requests")
+    public ResponseEntity<List<JoinRequestResponseDto>> getPendingJoinRequests(@PathVariable Long leagueId) {
+        List<LeagueJoinRequest> requests = leagueService.getPendingJoinRequests(leagueId);
+
+        List<JoinRequestResponseDto> requestsDto = requests.stream()
+                .map(this::mapToJoinRequestDto)
+                .collect(Collectors.toList());
+
+        return ResponseEntity.ok(requestsDto);
+    }
+
+    @PreAuthorize("@leagueService.checkIfUserIsAdmin(#leagueId, principal.id)")
+    @PostMapping("/{leagueId}/requests/{requestId}/accept")
+    public ResponseEntity<?> acceptJoinRequest(@PathVariable Long leagueId, @PathVariable Long requestId) {
+        try {
+            leagueService.acceptJoinRequest(requestId);
+            return ResponseEntity.ok().build();
+        } catch (ResponseStatusException e) {
+            return ResponseEntity.status(e.getStatusCode()).body(new ErrorResponse(e.getReason()));
+        }
+    }
+
+    @PreAuthorize("@leagueService.checkIfUserIsAdmin(#leagueId, principal.id)")
+    @PostMapping("/{leagueId}/requests/{requestId}/reject")
+    public ResponseEntity<?> rejectJoinRequest(@PathVariable Long leagueId, @PathVariable Long requestId) {
+        try {
+            leagueService.rejectJoinRequest(requestId);
+            return ResponseEntity.ok().build();
+        } catch (ResponseStatusException e) {
+            return ResponseEntity.status(e.getStatusCode()).body(new ErrorResponse(e.getReason()));
         }
     }
 
@@ -127,5 +176,14 @@ public class LeagueController {
 
         leagueService.deleteLeague(id); // Asumiendo que existe este método en el servicio
         return ResponseEntity.noContent().build();
+    }
+
+    private JoinRequestResponseDto mapToJoinRequestDto(LeagueJoinRequest request) {
+        return new JoinRequestResponseDto(
+                request.getId(),
+                request.getUser().getId(),
+                request.getUser().getUsername(),
+                request.getRequestDate()
+        );
     }
 }
