@@ -37,6 +37,12 @@ public class LeagueService {
     }
 
     @Transactional
+    public boolean checkIfUserIsMember(Long leagueId, Long userId) {
+        return userLeagueRoleRepository.existsByLeagueIdAndUserId(leagueId, userId);
+    }
+
+
+    @Transactional
     public LeagueResponseDto createLeague(League newLeague, Long userId) {
         User creator = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
@@ -109,7 +115,6 @@ public class LeagueService {
         leagueJoinRequestRepository.save(request);
     }
 
-    // Nuevo método: Obtener solicitudes pendientes (solo para admins)
     @Transactional
     public List<LeagueJoinRequest> getPendingJoinRequests(Long leagueId) {
         League league = leagueRepository.findById(leagueId)
@@ -118,7 +123,6 @@ public class LeagueService {
         return leagueJoinRequestRepository.findByLeagueAndStatus(league, RequestStatus.PENDING);
     }
 
-    // Nuevo método: Aceptar una solicitud
     @Transactional
     public void acceptJoinRequest(Long requestId) {
         LeagueJoinRequest request = leagueJoinRequestRepository.findById(requestId)
@@ -140,7 +144,6 @@ public class LeagueService {
         leagueRepository.save(league);
     }
 
-    // Nuevo método: Rechazar una solicitud
     @Transactional
     public void rejectJoinRequest(Long requestId) {
         LeagueJoinRequest request = leagueJoinRequestRepository.findById(requestId)
@@ -151,19 +154,20 @@ public class LeagueService {
     }
 
     @Transactional
-    public LeagueResponseDto getLeagueById(Long id) {
+    public LeagueResponseDto getLeagueById(Long id, Long userId) {
+        // 1. Verificamos que la liga existe
         League league = leagueRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Liga no encontrada"));
 
+        // 2. Verificamos que el usuario es miembro de la liga
+        if (!checkIfUserIsMember(id, userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No eres miembro de esta liga");
+        }
+
+        // 3. Si es miembro, devolvemos los detalles
         return mapToLeagueResponseDto(league);
     }
 
-    /**
-     * Implementación del método para actualizar una liga.
-     * @param id El ID de la liga a actualizar.
-     * @param leagueCreateDto DTO con los datos actualizados.
-     * @return DTO de la liga actualizada.
-     */
     @Transactional
     public LeagueResponseDto updateLeague(Long id, LeagueCreateDto leagueCreateDto) {
         League existingLeague = leagueRepository.findById(id)
@@ -178,10 +182,6 @@ public class LeagueService {
         return mapToLeagueResponseDto(updatedLeague);
     }
 
-    /**
-     * Implementación del método para eliminar una liga.
-     * @param id El ID de la liga a eliminar.
-     */
     @Transactional
     public void deleteLeague(Long id) {
         if (!leagueRepository.existsById(id)) {
@@ -190,7 +190,6 @@ public class LeagueService {
         leagueRepository.deleteById(id);
     }
 
-    // Método para verificar si un usuario es administrador de una liga
     @Transactional
     public boolean checkIfUserIsAdmin(Long leagueId, Long userId) {
         // Obtenemos el rol del usuario en la liga

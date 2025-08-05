@@ -95,13 +95,6 @@ public class LeagueController {
         }
     }
 
-    /**
-     * Endpoint para crear una nueva liga.
-     * El usuario autenticado es automáticamente asignado como administrador y participante.
-     * @param leagueCreateDto DTO con los datos de la liga a crear.
-     * @param currentUser Detalles del usuario autenticado.
-     * @return ResponseEntity con la liga creada y el estado 201 Created.
-     */
     @PostMapping
     public ResponseEntity<LeagueResponseDto> createLeague(@Valid @RequestBody LeagueCreateDto leagueCreateDto,
                                                           @AuthenticationPrincipal CustomUserDetails currentUser) {
@@ -126,27 +119,17 @@ public class LeagueController {
         return new ResponseEntity<>(createdLeague, HttpStatus.CREATED);
     }
 
-    /**
-     * Endpoint para obtener una liga por su ID.
-     * Cualquier usuario autenticado puede ver los detalles de una liga.
-     * @param id El ID de la liga.
-     * @return ResponseEntity con la liga encontrada o un error 404.
-     */
     @GetMapping("/{id}")
-    public ResponseEntity<LeagueResponseDto> getLeagueById(@PathVariable Long id) {
-        // La lógica de búsqueda y mapeo está ahora en el servicio
-        LeagueResponseDto leagueDto = leagueService.getLeagueById(id);
-        return ResponseEntity.ok(leagueDto);
+    public ResponseEntity<?> getLeagueById(@PathVariable Long id,
+                                           @AuthenticationPrincipal CustomUserDetails currentUser) {
+        try {
+            LeagueResponseDto leagueDto = leagueService.getLeagueById(id, currentUser.getId());
+            return ResponseEntity.ok(leagueDto);
+        } catch (ResponseStatusException e) {
+            return ResponseEntity.status(e.getStatusCode()).body(new ErrorResponse(e.getReason()));
+        }
     }
 
-    /**
-     * Endpoint para actualizar los datos de una liga.
-     * Solo el administrador de la liga puede modificarla.
-     * @param id El ID de la liga a actualizar.
-     * @param leagueCreateDto DTO con los datos actualizados de la liga.
-     * @param currentUser Detalles del usuario autenticado para verificar permisos.
-     * @return ResponseEntity con la liga actualizada.
-     */
     @PutMapping("/{id}")
     public ResponseEntity<LeagueResponseDto> updateLeague(@PathVariable Long id,
                                                           @Valid @RequestBody LeagueCreateDto leagueCreateDto,
@@ -160,12 +143,6 @@ public class LeagueController {
         return ResponseEntity.ok(updatedLeague);
     }
 
-    /**
-     * Endpoint para eliminar una liga.
-     * Solo el administrador de la liga puede eliminarla.
-     * @param id El ID de la liga a eliminar.
-     * @return ResponseEntity sin contenido si la operación es exitosa.
-     */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteLeague(@PathVariable Long id,
                                              @AuthenticationPrincipal CustomUserDetails currentUser) {
