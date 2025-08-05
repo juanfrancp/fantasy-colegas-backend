@@ -2,6 +2,7 @@ package com.fantasycolegas.fantasy_colegas_backend.service;
 
 import com.fantasycolegas.fantasy_colegas_backend.dto.request.RosterCreateDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.request.RosterPlayerDto;
+import com.fantasycolegas.fantasy_colegas_backend.dto.response.RosterPlayerResponseDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.response.RosterResponseDto;
 import com.fantasycolegas.fantasy_colegas_backend.model.League;
 import com.fantasycolegas.fantasy_colegas_backend.model.PlayerTeamRole;
@@ -111,7 +112,7 @@ public class RosterService {
         return "Equipo de la jornada guardado con éxito.";
     }
 
-    public List<RosterResponseDto> getUserRoster(Long leagueId, Long userId) {
+    public List<RosterPlayerResponseDto> getUserRoster(Long leagueId, Long userId) {
         // 1. Validar que el usuario es miembro de la liga
         if (!leagueService.isUserParticipant(leagueId, userId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo los participantes de la liga pueden ver su equipo.");
@@ -122,11 +123,12 @@ public class RosterService {
 
         // 3. Mapear a DTOs de respuesta
         return rosterPlayers.stream()
-                .map(rosterPlayer -> new RosterResponseDto(
+                .map(rosterPlayer -> new RosterPlayerResponseDto(
                         rosterPlayer.getPlayer().getId(),
                         rosterPlayer.getPlayer().getName(),
                         rosterPlayer.getRole(),
-                        rosterPlayer.getPlayer().getImage()
+                        rosterPlayer.getPlayer().getImage(),
+                        rosterPlayer.getPlayer().getTotalPoints()
                 ))
                 .collect(Collectors.toList());
     }

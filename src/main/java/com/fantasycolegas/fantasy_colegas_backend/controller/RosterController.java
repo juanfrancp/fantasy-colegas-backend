@@ -1,8 +1,7 @@
-// Archivo: RosterController.java
 package com.fantasycolegas.fantasy_colegas_backend.controller;
 
 import com.fantasycolegas.fantasy_colegas_backend.dto.request.RosterCreateDto;
-import com.fantasycolegas.fantasy_colegas_backend.dto.response.RosterResponseDto;
+import com.fantasycolegas.fantasy_colegas_backend.dto.response.RosterPlayerResponseDto;
 import com.fantasycolegas.fantasy_colegas_backend.service.RosterService;
 import com.fantasycolegas.fantasy_colegas_backend.security.CustomUserDetails;
 import jakarta.validation.Valid;
@@ -25,9 +24,9 @@ public class RosterController {
     }
 
     @PostMapping("/leagues/{leagueId}/rosters")
-    public ResponseEntity<?> createRoster(@PathVariable Long leagueId,
-                                          @Valid @RequestBody RosterCreateDto rosterCreateDto,
-                                          @AuthenticationPrincipal CustomUserDetails currentUser) {
+    public ResponseEntity<String> createRoster(@PathVariable Long leagueId,
+                                               @Valid @RequestBody RosterCreateDto rosterCreateDto,
+                                               @AuthenticationPrincipal CustomUserDetails currentUser) {
         try {
             String message = rosterService.createRoster(leagueId, rosterCreateDto, currentUser.getId());
             return new ResponseEntity<>(message, HttpStatus.OK);
@@ -40,7 +39,7 @@ public class RosterController {
     public ResponseEntity<?> getUserRoster(@PathVariable Long leagueId,
                                            @AuthenticationPrincipal CustomUserDetails currentUser) {
         try {
-            List<RosterResponseDto> roster = rosterService.getUserRoster(leagueId, currentUser.getId());
+            List<RosterPlayerResponseDto> roster = rosterService.getUserRoster(leagueId, currentUser.getId());
             return ResponseEntity.ok(roster);
         } catch (ResponseStatusException e) {
             return ResponseEntity.status(e.getStatusCode()).body(e.getReason());

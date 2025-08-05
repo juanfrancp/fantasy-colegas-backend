@@ -3,12 +3,11 @@ package com.fantasycolegas.fantasy_colegas_backend.service;
 
 import com.fantasycolegas.fantasy_colegas_backend.dto.request.LeagueCreateDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.request.LeagueTeamSizeUpdateDto;
-import com.fantasycolegas.fantasy_colegas_backend.dto.response.LeagueResponseDto;
-import com.fantasycolegas.fantasy_colegas_backend.dto.response.PlayerResponseDto;
-import com.fantasycolegas.fantasy_colegas_backend.dto.response.UserResponseDto;
+import com.fantasycolegas.fantasy_colegas_backend.dto.response.*;
 import com.fantasycolegas.fantasy_colegas_backend.model.*;
 import com.fantasycolegas.fantasy_colegas_backend.repository.*;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
@@ -16,7 +15,6 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Service
 public class LeagueService {
@@ -37,6 +35,45 @@ public class LeagueService {
         this.leagueJoinRequestRepository = leagueJoinRequestRepository;
         this.playerRepository = playerRepository;
         this.rosterPlayerRepository = rosterPlayerRepository;
+    }
+
+    public RosterResponseDto getRosterByTeamId(Long leagueId, Long teamId, String requestingUsername) {
+        // ... Tu lógica de validación de usuario y liga (sin cambios)
+        League league = leagueRepository.findById(leagueId)
+                .orElseThrow(() -> new IllegalArgumentException("League not found with ID: " + leagueId));
+        User requestingUser = userRepository.findByUsername(requestingUsername)
+                .orElseThrow(() -> new IllegalArgumentException("Authenticated user not found."));
+        boolean isRequestingUserInLeague = userLeagueRoleRepository
+                .existsByLeagueIdAndUserId( leagueId, requestingUser.getId());
+        if (!isRequestingUserInLeague) {
+            throw new AccessDeniedException("The requesting user is not a member of this league.");
+        }
+        List<RosterPlayer> rosterPlayers = rosterPlayerRepository.findByLeagueAndUser_Id(league, teamId);
+        if (rosterPlayers.isEmpty()) {
+            throw new IllegalArgumentException("Roster not found for user ID " + teamId + " in league ID: " + leagueId);
+        }
+
+        User user = rosterPlayers.get(0).getUser();
+
+        // 1. Mapear cada RosterPlayer a un RosterPlayerResponseDto (el DTO con el rol)
+        List<RosterPlayerResponseDto> playerDTOs = rosterPlayers.stream()
+                .map(rp -> new RosterPlayerResponseDto(
+                        rp.getPlayer().getId(),
+                        rp.getPlayer().getName(),
+                        rp.getRole(), // <-- Rol en el equipo
+                        rp.getPlayer().getImage(),
+                        rp.getPlayer().getTotalPoints()))
+                .collect(Collectors.toList());
+
+        // 2. Construir el DTO de respuesta principal
+        RosterResponseDto rosterResponseDto = new RosterResponseDto();
+        rosterResponseDto.setLeagueId(league.getId());
+        rosterResponseDto.setLeagueName(league.getName());
+        rosterResponseDto.setUserId(user.getId());
+        rosterResponseDto.setUsername(user.getUsername());
+        rosterResponseDto.setPlayers(playerDTOs); // <-- Asignamos la lista de jugadores
+
+        return rosterResponseDto;
     }
 
     @Transactional

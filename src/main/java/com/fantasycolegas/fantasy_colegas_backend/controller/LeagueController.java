@@ -1,27 +1,25 @@
 // Archivo: LeagueController.java
 package com.fantasycolegas.fantasy_colegas_backend.controller;
 
-import com.fantasycolegas.fantasy_colegas_backend.dto.request.ChangeRoleDto;
-import com.fantasycolegas.fantasy_colegas_backend.dto.request.JoinLeagueDto;
-import com.fantasycolegas.fantasy_colegas_backend.dto.request.LeagueCreateDto;
-import com.fantasycolegas.fantasy_colegas_backend.dto.request.LeagueTeamSizeUpdateDto;
+import com.fantasycolegas.fantasy_colegas_backend.dto.request.*;
 import com.fantasycolegas.fantasy_colegas_backend.dto.response.ErrorResponse;
 import com.fantasycolegas.fantasy_colegas_backend.dto.response.JoinRequestResponseDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.response.LeagueResponseDto;
-import com.fantasycolegas.fantasy_colegas_backend.model.League;
+import com.fantasycolegas.fantasy_colegas_backend.dto.response.RosterResponseDto;
 import com.fantasycolegas.fantasy_colegas_backend.model.LeagueJoinRequest;
 import com.fantasycolegas.fantasy_colegas_backend.security.CustomUserDetails;
 import com.fantasycolegas.fantasy_colegas_backend.service.LeagueService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
-import java.util.Random;
 import java.util.stream.Collectors;
 
 @RestController
@@ -33,6 +31,26 @@ public class LeagueController {
     // Inyección de dependencias
     public LeagueController(LeagueService leagueService) {
         this.leagueService = leagueService;
+    }
+
+    @GetMapping("/{id}/rosters/{teamId}")
+    public ResponseEntity<RosterResponseDto> getRosterByTeamId(
+            @PathVariable("id") Long leagueId,
+            @PathVariable("teamId") Long teamId,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        // Obtenemos el username del usuario autenticado
+        String requestingUsername = userDetails.getUsername();
+
+        try {
+            // Pasamos el username al servicio
+            RosterResponseDto rosterDTO = leagueService.getRosterByTeamId(leagueId, teamId, requestingUsername);
+            return ResponseEntity.ok(rosterDTO);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        } catch (AccessDeniedException e) {
+            return ResponseEntity.status(403).build();
+        }
     }
 
     @PatchMapping("/{leagueId}/team-size")
