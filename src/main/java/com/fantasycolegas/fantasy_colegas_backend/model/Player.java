@@ -28,6 +28,9 @@ public class Player {
 
     // Relación ManyToOne: un futbolista pertenece a una sola liga
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "league_id", nullable = false)
+    @JoinColumn(name = "league_id")
     private League league;
+
+    @Column(nullable = false)
+    private boolean isPlaceholder = false;
 }

@@ -7,10 +7,7 @@ import com.fantasycolegas.fantasy_colegas_backend.dto.response.LeagueResponseDto
 import com.fantasycolegas.fantasy_colegas_backend.dto.response.PlayerResponseDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.response.UserResponseDto;
 import com.fantasycolegas.fantasy_colegas_backend.model.*;
-import com.fantasycolegas.fantasy_colegas_backend.repository.LeagueRepository;
-import com.fantasycolegas.fantasy_colegas_backend.repository.UserLeagueRoleRepository;
-import com.fantasycolegas.fantasy_colegas_backend.repository.UserRepository;
-import com.fantasycolegas.fantasy_colegas_backend.repository.LeagueJoinRequestRepository;
+import com.fantasycolegas.fantasy_colegas_backend.repository.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,14 +25,18 @@ public class LeagueService {
     private final UserRepository userRepository;
     private final UserLeagueRoleRepository userLeagueRoleRepository;
     private final LeagueJoinRequestRepository leagueJoinRequestRepository;
+    private final PlayerRepository playerRepository;
+    private final RosterPlayerRepository rosterPlayerRepository;
 
     public LeagueService(LeagueRepository leagueRepository, UserRepository userRepository,
                          UserLeagueRoleRepository userLeagueRoleRepository,
-                         LeagueJoinRequestRepository leagueJoinRequestRepository) {
+                         LeagueJoinRequestRepository leagueJoinRequestRepository, PlayerRepository playerRepository, RosterPlayerRepository rosterPlayerRepository) {
         this.leagueRepository = leagueRepository;
         this.userRepository = userRepository;
         this.userLeagueRoleRepository = userLeagueRoleRepository;
         this.leagueJoinRequestRepository = leagueJoinRequestRepository;
+        this.playerRepository = playerRepository;
+        this.rosterPlayerRepository = rosterPlayerRepository;
     }
 
     @Transactional
@@ -114,6 +115,9 @@ public class LeagueService {
         userLeagueRoleRepository.save(adminRole);
 
         // Mapear la liga guardada a su DTO de respuesta y retornar
+
+        createRandomRosterForUser(newLeague.getId(), creator.getId());
+
         return mapToLeagueResponseDto(savedLeague);
     }
 
@@ -136,7 +140,70 @@ public class LeagueService {
         UserLeagueRole participantRole = new UserLeagueRole(user, league, LeagueRole.PARTICIPANT);
         userLeagueRoleRepository.save(participantRole);
 
+        createRandomRosterForUser(league.getId(), userId);
+
         return mapToLeagueResponseDto(league);
+    }
+
+    @Transactional
+    public void createRandomRosterForUser(Long leagueId, Long userId) {
+        League league = leagueRepository.findById(leagueId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Liga no encontrada."));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado."));
+
+        // Obtener todos los jugadores reales de la liga
+        List<Player> allPlayersInLeague = playerRepository.findByLeagueIdAndIsPlaceholderFalse(leagueId);
+
+        // Encontrar el jugador vacío para rellenar los huecos
+        Player placeholderPlayer = playerRepository.findByIsPlaceholderTrue()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Jugador vacío no encontrado."));
+
+        // Mezclar la lista de jugadores reales para una selección aleatoria
+        Collections.shuffle(allPlayersInLeague);
+
+        // Crear la lista del equipo con los jugadores reales disponibles
+        List<Player> teamPlayers = new ArrayList<>();
+        int teamSize = league.getTeamSize();
+
+        // Añadir jugadores reales (hasta el número de jugadores disponibles)
+        for (int i = 0; i < Math.min(teamSize, allPlayersInLeague.size()); i++) {
+            teamPlayers.add(allPlayersInLeague.get(i));
+        }
+
+        // Rellenar el resto del equipo con el jugador vacío
+        while (teamPlayers.size() < teamSize) {
+            teamPlayers.add(placeholderPlayer);
+        }
+
+        // Borrar cualquier equipo existente para el usuario (si lo hubiera)
+        rosterPlayerRepository.deleteByUserIdAndLeagueId(userId, leagueId);
+
+        // Crear la lista de RosterPlayer
+        List<RosterPlayer> roster = new ArrayList<>();
+
+        // El primer jugador de la lista será el portero, sin importar si es real o vacío
+        Player portero = teamPlayers.get(0);
+        RosterPlayer porteroRoster = new RosterPlayer();
+        porteroRoster.setUser(user);
+        porteroRoster.setLeague(league);
+        porteroRoster.setPlayer(portero);
+        porteroRoster.setRole(PlayerTeamRole.PORTERO);
+        roster.add(porteroRoster);
+
+        // El resto de los jugadores son de campo
+        for (int i = 1; i < teamPlayers.size(); i++) {
+            Player campo = teamPlayers.get(i);
+            RosterPlayer campoRoster = new RosterPlayer();
+            campoRoster.setUser(user);
+            campoRoster.setLeague(league);
+            campoRoster.setPlayer(campo);
+            campoRoster.setRole(PlayerTeamRole.CAMPO);
+            roster.add(campoRoster);
+        }
+
+        // Guardar el nuevo equipo en la base de datos
+        rosterPlayerRepository.saveAll(roster);
     }
 
     @Transactional
@@ -219,6 +286,8 @@ public class LeagueService {
         existingLeague.setDescription(leagueCreateDto.getDescription());
         existingLeague.setImage(leagueCreateDto.getImage());
         existingLeague.setPrivate(leagueCreateDto.isPrivate());
+        existingLeague.setNumberOfPlayers(leagueCreateDto.getNumberOfPlayers());
+        existingLeague.setTeamSize(leagueCreateDto.getTeamSize());
 
         League updatedLeague = leagueRepository.save(existingLeague);
         return mapToLeagueResponseDto(updatedLeague);
@@ -265,7 +334,6 @@ public class LeagueService {
         userLeagueRoleRepository.delete(userRole);
     }
 
-    // Método para verificar si un usuario es administrador de una liga
     @Transactional
     public boolean checkIfUserIsAdmin(Long leagueId, Long userId) {
         return userLeagueRoleRepository.findByLeagueId(leagueId).stream()
@@ -315,5 +383,9 @@ public class LeagueService {
 
     private PlayerResponseDto mapToPlayerResponseDto(Player player) {
         return new PlayerResponseDto(player.getId(), player.getName(), player.getImage(), player.getTotalPoints());
+    }
+
+    public boolean isUserParticipant(Long leagueId, Long userId) {
+        return userLeagueRoleRepository.existsByLeagueIdAndUserId(leagueId, userId);
     }
 }
