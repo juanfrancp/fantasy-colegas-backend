@@ -2,6 +2,7 @@ package com.fantasycolegas.fantasy_colegas_backend.service;
 
 import com.fantasycolegas.fantasy_colegas_backend.dto.request.PlayerCreateDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.request.PlayerUpdateDto;
+import com.fantasycolegas.fantasy_colegas_backend.dto.request.PointsUpdateDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.response.PlayerResponseDto;
 import com.fantasycolegas.fantasy_colegas_backend.model.League;
 import com.fantasycolegas.fantasy_colegas_backend.model.Player;
@@ -116,6 +117,30 @@ public class PlayerService {
 
         // 3. Mapear y retornar el DTO
         return mapToPlayerResponseDto(player);
+    }
+
+    @Transactional
+    public PlayerResponseDto updatePlayerPoints(Long leagueId, Long playerId, PointsUpdateDto pointsUpdateDto, Long userId) {
+        // 1. Verificación de permisos de administrador
+        if (!leagueService.checkIfUserIsAdmin(leagueId, userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No tienes permisos de administrador para actualizar los puntos de un jugador en esta liga.");
+        }
+
+        // 2. Obtener el jugador por su ID
+        Player player = playerRepository.findById(playerId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Jugador no encontrado."));
+
+        // 3. Verificar que el jugador pertenece a la liga correcta
+        if (!player.getLeague().getId().equals(leagueId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El jugador no pertenece a la liga especificada.");
+        }
+
+        // 4. Actualizar los puntos totales
+        player.setTotalPoints(pointsUpdateDto.getTotalPoints());
+
+        // 5. Guardar el jugador actualizado
+        Player updatedPlayer = playerRepository.save(player);
+        return mapToPlayerResponseDto(updatedPlayer);
     }
 
     private PlayerResponseDto mapToPlayerResponseDto(Player player) {

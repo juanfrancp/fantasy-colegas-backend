@@ -2,6 +2,7 @@ package com.fantasycolegas.fantasy_colegas_backend.controller;
 
 import com.fantasycolegas.fantasy_colegas_backend.dto.request.PlayerCreateDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.request.PlayerUpdateDto;
+import com.fantasycolegas.fantasy_colegas_backend.dto.request.PointsUpdateDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.response.ErrorResponse;
 import com.fantasycolegas.fantasy_colegas_backend.dto.response.PlayerResponseDto;
 import com.fantasycolegas.fantasy_colegas_backend.security.CustomUserDetails;
@@ -65,6 +66,19 @@ public class PlayerController {
                                            @PathVariable Long playerId) {
         try {
             PlayerResponseDto playerDto = playerService.getPlayerById(leagueId, playerId);
+            return ResponseEntity.ok(playerDto);
+        } catch (ResponseStatusException e) {
+            return ResponseEntity.status(e.getStatusCode()).body(e.getReason());
+        }
+    }
+
+    @PatchMapping("/leagues/{leagueId}/players/{playerId}/points")
+    public ResponseEntity<?> updatePlayerPoints(@PathVariable Long leagueId,
+                                                @PathVariable Long playerId,
+                                                @RequestBody PointsUpdateDto pointsUpdateDto,
+                                                @AuthenticationPrincipal CustomUserDetails currentUser) {
+        try {
+            PlayerResponseDto playerDto = playerService.updatePlayerPoints(leagueId, playerId, pointsUpdateDto, currentUser.getId());
             return ResponseEntity.ok(playerDto);
         } catch (ResponseStatusException e) {
             return ResponseEntity.status(e.getStatusCode()).body(e.getReason());
