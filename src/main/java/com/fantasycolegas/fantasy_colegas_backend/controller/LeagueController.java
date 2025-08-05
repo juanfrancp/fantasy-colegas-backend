@@ -4,6 +4,7 @@ package com.fantasycolegas.fantasy_colegas_backend.controller;
 import com.fantasycolegas.fantasy_colegas_backend.dto.request.ChangeRoleDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.request.JoinLeagueDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.request.LeagueCreateDto;
+import com.fantasycolegas.fantasy_colegas_backend.dto.request.LeagueTeamSizeUpdateDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.response.ErrorResponse;
 import com.fantasycolegas.fantasy_colegas_backend.dto.response.JoinRequestResponseDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.response.LeagueResponseDto;
@@ -34,6 +35,18 @@ public class LeagueController {
         this.leagueService = leagueService;
     }
 
+    @PatchMapping("/{leagueId}/team-size")
+    public ResponseEntity<?> updateTeamSize(@PathVariable Long leagueId,
+                                            @RequestBody @Valid LeagueTeamSizeUpdateDto teamSizeUpdateDto,
+                                            @AuthenticationPrincipal CustomUserDetails currentUser) {
+        try {
+            LeagueResponseDto updatedLeague = leagueService.updateLeagueTeamSize(leagueId, teamSizeUpdateDto, currentUser.getId());
+            return ResponseEntity.ok(updatedLeague);
+        } catch (ResponseStatusException e) {
+            return ResponseEntity.status(e.getStatusCode()).body(e.getReason());
+        }
+    }
+
     @PreAuthorize("@leagueService.checkIfUserIsAdmin(#leagueId, principal.id)")
     @PatchMapping("/{leagueId}/participants/{targetUserId}/role")
     public ResponseEntity<?> changeUserRole(@PathVariable Long leagueId,
@@ -60,28 +73,14 @@ public class LeagueController {
     }
 
     @PostMapping
-    public ResponseEntity<LeagueResponseDto> createLeague(@Valid @RequestBody LeagueCreateDto leagueCreateDto,
-                                                          @AuthenticationPrincipal CustomUserDetails currentUser) {
-        League newLeague = new League();
-        newLeague.setName(leagueCreateDto.getName());
-        newLeague.setDescription(leagueCreateDto.getDescription());
-        newLeague.setImage(leagueCreateDto.getImage());
-        newLeague.setPrivate(leagueCreateDto.isPrivate());
-
-        String characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-        StringBuilder joinCodeBuilder = new StringBuilder();
-        Random random = new Random();
-        for (int i = 0; i < 4; i++) {
-            joinCodeBuilder.append(characters.charAt(random.nextInt(characters.length())));
+    public ResponseEntity<?> createLeague(@Valid @RequestBody LeagueCreateDto leagueCreateDto, // <-- CAMBIO AQUÍ
+                                          @AuthenticationPrincipal CustomUserDetails currentUser) {
+        try {
+            LeagueResponseDto createdLeague = leagueService.createLeague(leagueCreateDto, currentUser.getId());
+            return new ResponseEntity<>(createdLeague, HttpStatus.CREATED);
+        } catch (ResponseStatusException e) {
+            return ResponseEntity.status(e.getStatusCode()).body(e.getReason());
         }
-        newLeague.setJoinCode(joinCodeBuilder.toString());
-
-        // Añado aquí el numberOfPlayers para que lo tenga la liga desde un principio
-        newLeague.setNumberOfPlayers(leagueCreateDto.getNumberOfPlayers());
-
-        LeagueResponseDto createdLeague = leagueService.createLeague(newLeague, currentUser.getId());
-
-        return new ResponseEntity<>(createdLeague, HttpStatus.CREATED);
     }
 
     @GetMapping("/{id}")

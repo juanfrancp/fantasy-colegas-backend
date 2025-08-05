@@ -19,5 +19,6 @@ public class LeagueResponseDto {
     private int numberOfPlayers;
     private List<UserResponseDto> admins;
     private List<UserResponseDto> participants;
+    private int teamSize;
     private List<PlayerResponseDto> players;
 }

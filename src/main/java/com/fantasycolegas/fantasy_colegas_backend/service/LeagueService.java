@@ -2,6 +2,7 @@
 package com.fantasycolegas.fantasy_colegas_backend.service;
 
 import com.fantasycolegas.fantasy_colegas_backend.dto.request.LeagueCreateDto;
+import com.fantasycolegas.fantasy_colegas_backend.dto.request.LeagueTeamSizeUpdateDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.response.LeagueResponseDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.response.PlayerResponseDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.response.UserResponseDto;
@@ -16,10 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -38,6 +36,25 @@ public class LeagueService {
         this.userRepository = userRepository;
         this.userLeagueRoleRepository = userLeagueRoleRepository;
         this.leagueJoinRequestRepository = leagueJoinRequestRepository;
+    }
+
+    @Transactional
+    public LeagueResponseDto updateLeagueTeamSize(Long leagueId, LeagueTeamSizeUpdateDto teamSizeUpdateDto, Long userId) {
+        // 1. Verificar si el usuario es administrador
+        if (!checkIfUserIsAdmin(leagueId, userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo los administradores pueden cambiar el tamaño del equipo.");
+        }
+
+        // 2. Obtener la liga
+        League league = leagueRepository.findById(leagueId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Liga no encontrada."));
+
+        // 3. Actualizar el tamaño del equipo
+        league.setTeamSize(teamSizeUpdateDto.getTeamSize());
+
+        // 4. Guardar y retornar
+        leagueRepository.save(league);
+        return mapToLeagueResponseDto(league);
     }
 
     @Transactional
@@ -65,19 +82,39 @@ public class LeagueService {
     }
 
     @Transactional
-    public LeagueResponseDto createLeague(League newLeague, Long userId) {
+    public LeagueResponseDto createLeague(LeagueCreateDto leagueCreateDto, Long userId) { // <-- CAMBIO DE PARÁMETRO
         User creator = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
 
+        // Mapear el DTO a la entidad League
+        League newLeague = new League();
+        newLeague.setName(leagueCreateDto.getName());
+        newLeague.setDescription(leagueCreateDto.getDescription());
+        newLeague.setImage(leagueCreateDto.getImage());
+        newLeague.setPrivate(leagueCreateDto.isPrivate());
+        newLeague.setTeamSize(leagueCreateDto.getTeamSize()); // <-- ¡¡AQUÍ ESTÁ LA CORRECCIÓN!!
+
+        // Lógica de negocio (movida del controlador al servicio)
+        String characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        StringBuilder joinCodeBuilder = new StringBuilder();
+        Random random = new Random();
+        for (int i = 0; i < 4; i++) {
+            joinCodeBuilder.append(characters.charAt(random.nextInt(characters.length())));
+        }
+        newLeague.setJoinCode(joinCodeBuilder.toString());
+
+        // El número de jugadores siempre empieza en 1 (el creador)
+        newLeague.setNumberOfPlayers(1);
+
+        // Guardar la liga en la base de datos
         League savedLeague = leagueRepository.save(newLeague);
 
+        // Asignar rol de administrador al creador y guardar
         UserLeagueRole adminRole = new UserLeagueRole(creator, savedLeague, LeagueRole.ADMIN);
         userLeagueRoleRepository.save(adminRole);
 
-        League reloadedLeague = leagueRepository.findById(savedLeague.getId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Liga creada pero no encontrada"));
-
-        return mapToLeagueResponseDto(reloadedLeague);
+        // Mapear la liga guardada a su DTO de respuesta y retornar
+        return mapToLeagueResponseDto(savedLeague);
     }
 
     @Transactional
@@ -264,9 +301,10 @@ public class LeagueService {
                 league.getImage(),
                 league.isPrivate(),
                 league.getJoinCode(),
-                participantsDto.size(), // El número de participantes se calcula a partir de la lista
+                participantsDto.size(),
                 adminsDto,
                 participantsDto,
+                league.getTeamSize(),
                 players
         );
     }

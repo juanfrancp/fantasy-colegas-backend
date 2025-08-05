@@ -34,6 +34,7 @@ public class League {
     private boolean isPrivate = false;
     private String joinCode;
     private int numberOfPlayers;
+    private int teamSize;
 
     // Nueva relación OneToMany con la entidad de unión UserLeagueRole
     @OneToMany(mappedBy = "league", cascade = CascadeType.ALL, orphanRemoval = true)
