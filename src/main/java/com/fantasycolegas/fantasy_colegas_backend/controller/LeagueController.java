@@ -1,3 +1,4 @@
+// Archivo: LeagueController.java
 package com.fantasycolegas.fantasy_colegas_backend.controller;
 
 import com.fantasycolegas.fantasy_colegas_backend.dto.request.JoinLeagueDto;
@@ -37,7 +38,6 @@ public class LeagueController {
         this.leagueService = leagueService;
     }
 
-    // Endpoint para unirse a una liga
     @PostMapping("/join")
     public ResponseEntity<?> joinLeague(@RequestBody JoinLeagueDto joinLeagueDto,
                                         @AuthenticationPrincipal CustomUserDetails userDetails) {
@@ -45,7 +45,66 @@ public class LeagueController {
             LeagueResponseDto joinedLeague = leagueService.joinLeague(joinLeagueDto.getJoinCode(), userDetails.getId());
             return ResponseEntity.ok(joinedLeague);
         } catch (ResponseStatusException e) {
-            // Devolvemos el status code y el mensaje de error en el cuerpo
+            return ResponseEntity.status(e.getStatusCode()).body(new ErrorResponse(e.getReason()));
+        }
+    }
+
+    @PostMapping
+    public ResponseEntity<LeagueResponseDto> createLeague(@Valid @RequestBody LeagueCreateDto leagueCreateDto,
+                                                          @AuthenticationPrincipal CustomUserDetails currentUser) {
+        League newLeague = new League();
+        newLeague.setName(leagueCreateDto.getName());
+        newLeague.setDescription(leagueCreateDto.getDescription());
+        newLeague.setImage(leagueCreateDto.getImage());
+        newLeague.setPrivate(leagueCreateDto.isPrivate());
+
+        String characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        StringBuilder joinCodeBuilder = new StringBuilder();
+        Random random = new Random();
+        for (int i = 0; i < 4; i++) {
+            joinCodeBuilder.append(characters.charAt(random.nextInt(characters.length())));
+        }
+        newLeague.setJoinCode(joinCodeBuilder.toString());
+
+        // Añado aquí el numberOfPlayers para que lo tenga la liga desde un principio
+        newLeague.setNumberOfPlayers(leagueCreateDto.getNumberOfPlayers());
+
+        LeagueResponseDto createdLeague = leagueService.createLeague(newLeague, currentUser.getId());
+
+        return new ResponseEntity<>(createdLeague, HttpStatus.CREATED);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<?> getLeagueById(@PathVariable Long id,
+                                           @AuthenticationPrincipal CustomUserDetails currentUser) {
+        try {
+            LeagueResponseDto leagueDto = leagueService.getLeagueById(id, currentUser.getId());
+            return ResponseEntity.ok(leagueDto);
+        } catch (ResponseStatusException e) {
+            return ResponseEntity.status(e.getStatusCode()).body(new ErrorResponse(e.getReason()));
+        }
+    }
+
+    @PreAuthorize("@leagueService.checkIfUserIsAdmin(#id, principal.id)")
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updateLeague(@PathVariable Long id,
+                                          @Valid @RequestBody LeagueCreateDto leagueCreateDto,
+                                          @AuthenticationPrincipal CustomUserDetails currentUser) {
+        try {
+            LeagueResponseDto updatedLeague = leagueService.updateLeague(id, leagueCreateDto);
+            return ResponseEntity.ok(updatedLeague);
+        } catch (ResponseStatusException e) {
+            return ResponseEntity.status(e.getStatusCode()).body(new ErrorResponse(e.getReason()));
+        }
+    }
+
+    @PreAuthorize("@leagueService.checkIfUserIsAdmin(#id, principal.id)")
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteLeague(@PathVariable Long id) {
+        try {
+            leagueService.deleteLeague(id);
+            return ResponseEntity.noContent().build();
+        } catch (ResponseStatusException e) {
             return ResponseEntity.status(e.getStatusCode()).body(new ErrorResponse(e.getReason()));
         }
     }
@@ -95,64 +154,27 @@ public class LeagueController {
         }
     }
 
-    @PostMapping
-    public ResponseEntity<LeagueResponseDto> createLeague(@Valid @RequestBody LeagueCreateDto leagueCreateDto,
-                                                          @AuthenticationPrincipal CustomUserDetails currentUser) {
-        League newLeague = new League();
-        newLeague.setName(leagueCreateDto.getName());
-        newLeague.setDescription(leagueCreateDto.getDescription());
-        newLeague.setImage(leagueCreateDto.getImage());
-        newLeague.setPrivate(leagueCreateDto.isPrivate());
-
-        // Generar un joinCode de 4 dígitos (puedes mover esto al servicio si quieres)
-        String characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-        StringBuilder joinCodeBuilder = new StringBuilder();
-        Random random = new Random();
-        for (int i = 0; i < 4; i++) {
-            joinCodeBuilder.append(characters.charAt(random.nextInt(characters.length())));
-        }
-        newLeague.setJoinCode(joinCodeBuilder.toString());
-
-        // El servicio se encargará de añadir al usuario creador como admin y participante
-        LeagueResponseDto createdLeague = leagueService.createLeague(newLeague, currentUser.getId());
-
-        return new ResponseEntity<>(createdLeague, HttpStatus.CREATED);
-    }
-
-    @GetMapping("/{id}")
-    public ResponseEntity<?> getLeagueById(@PathVariable Long id,
-                                           @AuthenticationPrincipal CustomUserDetails currentUser) {
+    @DeleteMapping("/{leagueId}/leave")
+    public ResponseEntity<?> leaveLeague(@PathVariable Long leagueId,
+                                         @AuthenticationPrincipal CustomUserDetails currentUser) {
         try {
-            LeagueResponseDto leagueDto = leagueService.getLeagueById(id, currentUser.getId());
-            return ResponseEntity.ok(leagueDto);
+            leagueService.leaveLeague(leagueId, currentUser.getId());
+            return ResponseEntity.noContent().build();
         } catch (ResponseStatusException e) {
             return ResponseEntity.status(e.getStatusCode()).body(new ErrorResponse(e.getReason()));
         }
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<LeagueResponseDto> updateLeague(@PathVariable Long id,
-                                                          @Valid @RequestBody LeagueCreateDto leagueCreateDto,
-                                                          @AuthenticationPrincipal CustomUserDetails currentUser) {
-        // Delegamos la lógica de autorización al servicio
-        if (!leagueService.checkIfUserIsAdmin(id, currentUser.getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No tienes permisos de administrador para esta liga.");
+    @PreAuthorize("@leagueService.checkIfUserIsAdmin(#leagueId, principal.id)")
+    @DeleteMapping("/{leagueId}/expel/{targetUserId}")
+    public ResponseEntity<?> expelUser(@PathVariable Long leagueId, @PathVariable Long targetUserId,
+                                       @AuthenticationPrincipal CustomUserDetails currentUser) {
+        try {
+            leagueService.expelUser(leagueId, currentUser.getId(), targetUserId);
+            return ResponseEntity.noContent().build();
+        } catch (ResponseStatusException e) {
+            return ResponseEntity.status(e.getStatusCode()).body(new ErrorResponse(e.getReason()));
         }
-
-        LeagueResponseDto updatedLeague = leagueService.updateLeague(id, leagueCreateDto); // Asumiendo que existe este método en el servicio
-        return ResponseEntity.ok(updatedLeague);
-    }
-
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteLeague(@PathVariable Long id,
-                                             @AuthenticationPrincipal CustomUserDetails currentUser) {
-        // Delegamos la lógica de autorización al servicio
-        if (!leagueService.checkIfUserIsAdmin(id, currentUser.getId())) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No tienes permisos de administrador para esta liga.");
-        }
-
-        leagueService.deleteLeague(id); // Asumiendo que existe este método en el servicio
-        return ResponseEntity.noContent().build();
     }
 
     private JoinRequestResponseDto mapToJoinRequestDto(LeagueJoinRequest request) {

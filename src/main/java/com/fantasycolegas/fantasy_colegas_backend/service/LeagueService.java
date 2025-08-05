@@ -1,13 +1,19 @@
+// Archivo: LeagueService.java
 package com.fantasycolegas.fantasy_colegas_backend.service;
 
 import com.fantasycolegas.fantasy_colegas_backend.dto.request.LeagueCreateDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.response.LeagueResponseDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.response.UserResponseDto;
-import com.fantasycolegas.fantasy_colegas_backend.model.*;
-import com.fantasycolegas.fantasy_colegas_backend.repository.LeagueJoinRequestRepository;
+import com.fantasycolegas.fantasy_colegas_backend.model.League;
+import com.fantasycolegas.fantasy_colegas_backend.model.LeagueRole;
+import com.fantasycolegas.fantasy_colegas_backend.model.User;
+import com.fantasycolegas.fantasy_colegas_backend.model.UserLeagueRole;
+import com.fantasycolegas.fantasy_colegas_backend.model.LeagueJoinRequest;
+import com.fantasycolegas.fantasy_colegas_backend.model.RequestStatus;
 import com.fantasycolegas.fantasy_colegas_backend.repository.LeagueRepository;
 import com.fantasycolegas.fantasy_colegas_backend.repository.UserLeagueRoleRepository;
 import com.fantasycolegas.fantasy_colegas_backend.repository.UserRepository;
+import com.fantasycolegas.fantasy_colegas_backend.repository.LeagueJoinRequestRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -29,7 +35,9 @@ public class LeagueService {
     private final UserLeagueRoleRepository userLeagueRoleRepository;
     private final LeagueJoinRequestRepository leagueJoinRequestRepository;
 
-    public LeagueService(LeagueRepository leagueRepository, UserRepository userRepository, UserLeagueRoleRepository userLeagueRoleRepository, LeagueJoinRequestRepository leagueJoinRequestRepository) {
+    public LeagueService(LeagueRepository leagueRepository, UserRepository userRepository,
+                         UserLeagueRoleRepository userLeagueRoleRepository,
+                         LeagueJoinRequestRepository leagueJoinRequestRepository) {
         this.leagueRepository = leagueRepository;
         this.userRepository = userRepository;
         this.userLeagueRoleRepository = userLeagueRoleRepository;
@@ -37,26 +45,15 @@ public class LeagueService {
     }
 
     @Transactional
-    public boolean checkIfUserIsMember(Long leagueId, Long userId) {
-        return userLeagueRoleRepository.existsByLeagueIdAndUserId(leagueId, userId);
-    }
-
-
-    @Transactional
     public LeagueResponseDto createLeague(League newLeague, Long userId) {
         User creator = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
 
-        // El número de jugadores inicial es 1 (el creador)
-        newLeague.setNumberOfPlayers(1);
         League savedLeague = leagueRepository.save(newLeague);
 
-        // Asignar al creador el rol de ADMIN.
-        // No creamos un rol de PARTICIPANT, ya que un ADMIN es también un PARTICIPANT por definición.
         UserLeagueRole adminRole = new UserLeagueRole(creator, savedLeague, LeagueRole.ADMIN);
         userLeagueRoleRepository.save(adminRole);
 
-        // IMPORTANTE: Recargar la liga para que su colección de roles esté actualizada
         League reloadedLeague = leagueRepository.findById(savedLeague.getId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Liga creada pero no encontrada"));
 
@@ -75,7 +72,6 @@ public class LeagueService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
 
-        // Verificamos si el usuario ya tiene un rol en la liga
         if (userLeagueRoleRepository.existsByLeagueIdAndUserId(league.getId(), user.getId())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "El usuario ya es un participante de esta liga");
         }
@@ -83,10 +79,7 @@ public class LeagueService {
         UserLeagueRole participantRole = new UserLeagueRole(user, league, LeagueRole.PARTICIPANT);
         userLeagueRoleRepository.save(participantRole);
 
-        league.setNumberOfPlayers(league.getNumberOfPlayers() + 1);
-        League updatedLeague = leagueRepository.save(league);
-
-        return mapToLeagueResponseDto(updatedLeague);
+        return mapToLeagueResponseDto(league);
     }
 
     @Transactional
@@ -101,12 +94,14 @@ public class LeagueService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
 
-        // Verificamos si ya existe una solicitud pendiente
+        if (userLeagueRoleRepository.existsByLeagueIdAndUserId(league.getId(), user.getId())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Ya eres un miembro de esta liga.");
+        }
+
         if (leagueJoinRequestRepository.findByUserAndLeagueAndStatus(user, league, RequestStatus.PENDING).isPresent()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Ya tienes una solicitud de unión pendiente para esta liga");
         }
 
-        // Creamos y guardamos la nueva solicitud
         LeagueJoinRequest request = new LeagueJoinRequest();
         request.setUser(user);
         request.setLeague(league);
@@ -128,20 +123,14 @@ public class LeagueService {
         LeagueJoinRequest request = leagueJoinRequestRepository.findById(requestId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Solicitud no encontrada"));
 
-        // Marcar la solicitud como aceptada
         request.setStatus(RequestStatus.ACCEPTED);
         leagueJoinRequestRepository.save(request);
 
-        // Añadir al usuario como participante
         User user = request.getUser();
         League league = request.getLeague();
 
         UserLeagueRole participantRole = new UserLeagueRole(user, league, LeagueRole.PARTICIPANT);
         userLeagueRoleRepository.save(participantRole);
-
-        // Actualizar el número de jugadores
-        league.setNumberOfPlayers(league.getNumberOfPlayers() + 1);
-        leagueRepository.save(league);
     }
 
     @Transactional
@@ -149,22 +138,18 @@ public class LeagueService {
         LeagueJoinRequest request = leagueJoinRequestRepository.findById(requestId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Solicitud no encontrada"));
 
-        // Eliminar la solicitud
         leagueJoinRequestRepository.delete(request);
     }
 
     @Transactional
     public LeagueResponseDto getLeagueById(Long id, Long userId) {
-        // 1. Verificamos que la liga existe
         League league = leagueRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Liga no encontrada"));
 
-        // 2. Verificamos que el usuario es miembro de la liga
         if (!checkIfUserIsMember(id, userId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No eres miembro de esta liga");
         }
 
-        // 3. Si es miembro, devolvemos los detalles
         return mapToLeagueResponseDto(league);
     }
 
@@ -190,11 +175,50 @@ public class LeagueService {
         leagueRepository.deleteById(id);
     }
 
+    // Método para salir de la liga (CORREGIDO)
+    @Transactional
+    public void leaveLeague(Long leagueId, Long userId) {
+        UserLeagueRole userRole = userLeagueRoleRepository.findByLeagueIdAndUserId(leagueId, userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "El usuario no es miembro de esta liga."));
+
+        // Verificamos si el usuario que abandona es el único administrador
+        long adminCount = userLeagueRoleRepository.countByLeagueIdAndRole(leagueId, LeagueRole.ADMIN);
+        if (adminCount == 1 && userRole.getRole() == LeagueRole.ADMIN) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No puedes abandonar la liga siendo el único administrador.");
+        }
+
+        userLeagueRoleRepository.delete(userRole);
+    }
+
+    // Método para expulsar a un usuario (CORREGIDO)
+    @Transactional
+    public void expelUser(Long leagueId, Long adminUserId, Long targetUserId) {
+        if (adminUserId.equals(targetUserId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No puedes expulsarte a ti mismo de la liga.");
+        }
+
+        UserLeagueRole userRole = userLeagueRoleRepository.findByLeagueIdAndUserId(leagueId, targetUserId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "El usuario no es miembro de esta liga."));
+
+        long adminCount = userLeagueRoleRepository.countByLeagueIdAndRole(leagueId, LeagueRole.ADMIN);
+        if (adminCount == 1 && userRole.getRole() == LeagueRole.ADMIN) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No puedes expulsar al único administrador de la liga.");
+        }
+
+        userLeagueRoleRepository.delete(userRole);
+    }
+
+    // Método para verificar si un usuario es administrador de una liga
     @Transactional
     public boolean checkIfUserIsAdmin(Long leagueId, Long userId) {
-        // Obtenemos el rol del usuario en la liga
         return userLeagueRoleRepository.findByLeagueId(leagueId).stream()
                 .anyMatch(ulr -> ulr.getUser().getId().equals(userId) && ulr.getRole() == LeagueRole.ADMIN);
+    }
+
+    // Método para verificar si un usuario pertenece a una liga
+    @Transactional
+    public boolean checkIfUserIsMember(Long leagueId, Long userId) {
+        return userLeagueRoleRepository.existsByLeagueIdAndUserId(leagueId, userId);
     }
 
     private LeagueResponseDto mapToLeagueResponseDto(League league) {
@@ -205,7 +229,6 @@ public class LeagueService {
                 .map(ulr -> mapToUserResponseDto(ulr.getUser()))
                 .collect(Collectors.toList());
 
-        // La lista de participantes incluye a todos, tanto admins como participants
         List<UserResponseDto> participantsDto = userRoles.stream()
                 .map(ulr -> mapToUserResponseDto(ulr.getUser()))
                 .collect(Collectors.toList());
@@ -217,7 +240,7 @@ public class LeagueService {
                 league.getImage(),
                 league.isPrivate(),
                 league.getJoinCode(),
-                participantsDto.size(),
+                participantsDto.size(), // El número de participantes se calcula a partir de la lista
                 adminsDto,
                 participantsDto
         );
