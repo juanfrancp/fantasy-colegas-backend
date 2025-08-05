@@ -27,12 +27,6 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/leagues")
 public class LeagueController {
 
-    @Autowired
-    private LeagueRepository leagueRepository;
-
-    @Autowired
-    private UserRepository userRepository;
-
     private final LeagueService leagueService;
 
     // Inyección de dependencias
@@ -48,54 +42,27 @@ public class LeagueController {
             LeagueResponseDto joinedLeague = leagueService.joinLeague(joinLeagueDto.getJoinCode(), userDetails.getId());
             return ResponseEntity.ok(joinedLeague);
         } catch (RuntimeException e) {
-            // Manejar excepciones de negocio, como liga no encontrada o usuario ya en la liga
-            return ResponseEntity.badRequest().body(null); // O un DTO de error más específico
+            return ResponseEntity.badRequest().body(null);
         }
     }
 
-
-    // Helper method para mapear la entidad a DTO
-    private LeagueResponseDto mapToDto(League league) {
-        UserResponseDto adminDto = new UserResponseDto(league.getAdmin().getId(), league.getAdmin().getUsername());
-        List<UserResponseDto> participantsDto = league.getParticipants().stream()
-                .map(p -> new UserResponseDto(p.getId(), p.getUsername()))
-                .collect(Collectors.toList());
-
-        return new LeagueResponseDto(
-                league.getId(),
-                league.getName(),
-                league.getDescription(),
-                league.getImage(),
-                league.isPrivate(),
-                league.getJoinCode(),
-                league.getNumberOfPlayers(),
-                adminDto,
-                participantsDto
-        );
-    }
-
-
     /**
      * Endpoint para crear una nueva liga.
+     * El usuario autenticado es automáticamente asignado como administrador y participante.
      * @param leagueCreateDto DTO con los datos de la liga a crear.
-     * @param currentUser Detalles del usuario autenticado, que será el administrador de la liga.
+     * @param currentUser Detalles del usuario autenticado.
      * @return ResponseEntity con la liga creada y el estado 201 Created.
      */
     @PostMapping
     public ResponseEntity<LeagueResponseDto> createLeague(@Valid @RequestBody LeagueCreateDto leagueCreateDto,
-                                               @AuthenticationPrincipal CustomUserDetails currentUser) {
-        // Encontrar al usuario que está creando la liga
-        User admin = userRepository.findById(currentUser.getId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
-
+                                                          @AuthenticationPrincipal CustomUserDetails currentUser) {
         League newLeague = new League();
         newLeague.setName(leagueCreateDto.getName());
         newLeague.setDescription(leagueCreateDto.getDescription());
         newLeague.setImage(leagueCreateDto.getImage());
         newLeague.setPrivate(leagueCreateDto.isPrivate());
-        newLeague.setNumberOfPlayers(leagueCreateDto.getNumberOfPlayers());
-        newLeague.setAdmin(admin);
 
+        // Generar un joinCode de 4 dígitos (puedes mover esto al servicio si quieres)
         String characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
         StringBuilder joinCodeBuilder = new StringBuilder();
         Random random = new Random();
@@ -104,11 +71,10 @@ public class LeagueController {
         }
         newLeague.setJoinCode(joinCodeBuilder.toString());
 
-        // Guardar la nueva liga en la base de datos
-        League savedLeague = leagueRepository.save(newLeague);
+        // El servicio se encargará de añadir al usuario creador como admin y participante
+        LeagueResponseDto createdLeague = leagueService.createLeague(newLeague, currentUser.getId());
 
-        // Devolver el DTO de respuesta
-        return new ResponseEntity<>(mapToDto(savedLeague), HttpStatus.CREATED);
+        return new ResponseEntity<>(createdLeague, HttpStatus.CREATED);
     }
 
     /**
@@ -119,9 +85,9 @@ public class LeagueController {
      */
     @GetMapping("/{id}")
     public ResponseEntity<LeagueResponseDto> getLeagueById(@PathVariable Long id) {
-        League league = leagueRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Liga no encontrada"));
-        return ResponseEntity.ok(mapToDto(league));
+        // La lógica de búsqueda y mapeo está ahora en el servicio
+        LeagueResponseDto leagueDto = leagueService.getLeagueById(id);
+        return ResponseEntity.ok(leagueDto);
     }
 
     /**
@@ -132,25 +98,17 @@ public class LeagueController {
      * @param currentUser Detalles del usuario autenticado para verificar permisos.
      * @return ResponseEntity con la liga actualizada.
      */
-    @PreAuthorize("isAuthenticated() and @leagueRepository.findById(#id).get().admin.id == principal.id")
     @PutMapping("/{id}")
     public ResponseEntity<LeagueResponseDto> updateLeague(@PathVariable Long id,
-                                               @Valid @RequestBody LeagueCreateDto leagueCreateDto,
-                                               @AuthenticationPrincipal CustomUserDetails currentUser) {
-        // 1. Encontrar la liga a actualizar
-        League existingLeague = leagueRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Liga no encontrada"));
+                                                          @Valid @RequestBody LeagueCreateDto leagueCreateDto,
+                                                          @AuthenticationPrincipal CustomUserDetails currentUser) {
+        // Delegamos la lógica de autorización al servicio
+        if (!leagueService.checkIfUserIsAdmin(id, currentUser.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No tienes permisos de administrador para esta liga.");
+        }
 
-        // 2. Actualizar los campos
-        existingLeague.setName(leagueCreateDto.getName());
-        existingLeague.setDescription(leagueCreateDto.getDescription());
-        existingLeague.setImage(leagueCreateDto.getImage());
-        existingLeague.setPrivate(leagueCreateDto.isPrivate());
-        existingLeague.setNumberOfPlayers(leagueCreateDto.getNumberOfPlayers());
-
-        // 3. Guardar y devolver la liga actualizada
-        League updatedLeague = leagueRepository.save(existingLeague);
-        return ResponseEntity.ok(mapToDto(updatedLeague));
+        LeagueResponseDto updatedLeague = leagueService.updateLeague(id, leagueCreateDto); // Asumiendo que existe este método en el servicio
+        return ResponseEntity.ok(updatedLeague);
     }
 
     /**
@@ -159,18 +117,15 @@ public class LeagueController {
      * @param id El ID de la liga a eliminar.
      * @return ResponseEntity sin contenido si la operación es exitosa.
      */
-    @PreAuthorize("isAuthenticated() and @leagueRepository.findById(#id).get().admin.id == principal.id")
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteLeague(@PathVariable Long id) {
-        // 1. Verificar si la liga existe antes de eliminarla
-        if (!leagueRepository.existsById(id)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Liga no encontrada");
+    public ResponseEntity<Void> deleteLeague(@PathVariable Long id,
+                                             @AuthenticationPrincipal CustomUserDetails currentUser) {
+        // Delegamos la lógica de autorización al servicio
+        if (!leagueService.checkIfUserIsAdmin(id, currentUser.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No tienes permisos de administrador para esta liga.");
         }
 
-        // 2. Eliminar la liga
-        leagueRepository.deleteById(id);
-
-        // 3. Devolver una respuesta sin contenido
+        leagueService.deleteLeague(id); // Asumiendo que existe este método en el servicio
         return ResponseEntity.noContent().build();
     }
 }

@@ -17,6 +17,6 @@ public class LeagueResponseDto {
     private boolean isPrivate;
     private String joinCode;
     private int numberOfPlayers;
-    private UserResponseDto admin;
+    private List<UserResponseDto> admins;
     private List<UserResponseDto> participants;
 }
