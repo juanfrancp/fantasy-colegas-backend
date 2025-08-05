@@ -2,10 +2,14 @@ package com.fantasycolegas.fantasy_colegas_backend.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 
 @Entity
 @Table(name = "players")
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class Player {
 
     @Id
@@ -15,11 +19,14 @@ public class Player {
     @Column(nullable = false)
     private String name;
 
-    private String image; // Opcional, si no se le asignará una imagen por defecto
+    @Column(columnDefinition = "VARCHAR(255) DEFAULT 'https://example.com/default-player.jpg'")
+    private String image;
 
-    private int totalPoints = 0; // Se inicializa con 0 puntos
+    // Nuevo campo para la puntuación total
+    @Column(nullable = false)
+    private int totalPoints;
 
-    // Relación con League: Un jugador pertenece a una liga
+    // Relación ManyToOne: un futbolista pertenece a una sola liga
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "league_id", nullable = false)
     private League league;

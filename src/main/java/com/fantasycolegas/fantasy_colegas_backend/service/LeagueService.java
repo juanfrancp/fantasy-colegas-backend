@@ -3,13 +3,9 @@ package com.fantasycolegas.fantasy_colegas_backend.service;
 
 import com.fantasycolegas.fantasy_colegas_backend.dto.request.LeagueCreateDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.response.LeagueResponseDto;
+import com.fantasycolegas.fantasy_colegas_backend.dto.response.PlayerResponseDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.response.UserResponseDto;
-import com.fantasycolegas.fantasy_colegas_backend.model.League;
-import com.fantasycolegas.fantasy_colegas_backend.model.LeagueRole;
-import com.fantasycolegas.fantasy_colegas_backend.model.User;
-import com.fantasycolegas.fantasy_colegas_backend.model.UserLeagueRole;
-import com.fantasycolegas.fantasy_colegas_backend.model.LeagueJoinRequest;
-import com.fantasycolegas.fantasy_colegas_backend.model.RequestStatus;
+import com.fantasycolegas.fantasy_colegas_backend.model.*;
 import com.fantasycolegas.fantasy_colegas_backend.repository.LeagueRepository;
 import com.fantasycolegas.fantasy_colegas_backend.repository.UserLeagueRoleRepository;
 import com.fantasycolegas.fantasy_colegas_backend.repository.UserRepository;
@@ -257,6 +253,10 @@ public class LeagueService {
                 .map(ulr -> mapToUserResponseDto(ulr.getUser()))
                 .collect(Collectors.toList());
 
+        List<PlayerResponseDto> players = league.getPlayers().stream()
+                .map(this::mapToPlayerResponseDto)
+                .collect(Collectors.toList());
+
         return new LeagueResponseDto(
                 league.getId(),
                 league.getName(),
@@ -266,11 +266,16 @@ public class LeagueService {
                 league.getJoinCode(),
                 participantsDto.size(), // El número de participantes se calcula a partir de la lista
                 adminsDto,
-                participantsDto
+                participantsDto,
+                players
         );
     }
 
     private UserResponseDto mapToUserResponseDto(User user) {
         return new UserResponseDto(user.getId(), user.getUsername());
+    }
+
+    private PlayerResponseDto mapToPlayerResponseDto(Player player) {
+        return new PlayerResponseDto(player.getId(), player.getName(), player.getImage(), player.getTotalPoints());
     }
 }
