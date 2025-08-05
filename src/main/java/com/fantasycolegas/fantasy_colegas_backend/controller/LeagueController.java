@@ -1,6 +1,7 @@
 // Archivo: LeagueController.java
 package com.fantasycolegas.fantasy_colegas_backend.controller;
 
+import com.fantasycolegas.fantasy_colegas_backend.dto.request.ChangeRoleDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.request.JoinLeagueDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.request.LeagueCreateDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.response.ErrorResponse;
@@ -36,6 +37,20 @@ public class LeagueController {
     // Inyección de dependencias
     public LeagueController(LeagueService leagueService) {
         this.leagueService = leagueService;
+    }
+
+    @PreAuthorize("@leagueService.checkIfUserIsAdmin(#leagueId, principal.id)")
+    @PatchMapping("/{leagueId}/participants/{targetUserId}/role")
+    public ResponseEntity<?> changeUserRole(@PathVariable Long leagueId,
+                                            @PathVariable Long targetUserId,
+                                            @Valid @RequestBody ChangeRoleDto changeRoleDto,
+                                            @AuthenticationPrincipal CustomUserDetails currentUser) {
+        try {
+            leagueService.changeUserRole(leagueId, currentUser.getId(), targetUserId, changeRoleDto.getNewRole());
+            return ResponseEntity.ok().build();
+        } catch (ResponseStatusException e) {
+            return ResponseEntity.status(e.getStatusCode()).body(new ErrorResponse(e.getReason()));
+        }
     }
 
     @PostMapping("/join")

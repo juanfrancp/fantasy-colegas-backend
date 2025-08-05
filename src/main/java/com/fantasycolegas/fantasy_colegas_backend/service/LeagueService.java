@@ -45,6 +45,30 @@ public class LeagueService {
     }
 
     @Transactional
+    public void changeUserRole(Long leagueId, Long adminUserId, Long targetUserId, LeagueRole newRole) {
+        // 1. Validar que el administrador no está intentando cambiar su propio rol
+        if (adminUserId.equals(targetUserId)) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No puedes cambiar tu propio rol.");
+        }
+
+        // 2. Obtener el rol del usuario objetivo
+        UserLeagueRole targetUserRole = userLeagueRoleRepository.findByLeagueIdAndUserId(leagueId, targetUserId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "El usuario no es miembro de esta liga."));
+
+        // 3. Lógica de validación importante: no se puede degradar al único administrador
+        if (targetUserRole.getRole() == LeagueRole.ADMIN && newRole == LeagueRole.PARTICIPANT) {
+            long adminCount = userLeagueRoleRepository.countByLeagueIdAndRole(leagueId, LeagueRole.ADMIN);
+            if (adminCount <= 1) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No puedes degradar al único administrador de la liga.");
+            }
+        }
+
+        // 4. Actualizar el rol y guardar en la base de datos
+        targetUserRole.setRole(newRole);
+        userLeagueRoleRepository.save(targetUserRole);
+    }
+
+    @Transactional
     public LeagueResponseDto createLeague(League newLeague, Long userId) {
         User creator = userRepository.findById(userId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
