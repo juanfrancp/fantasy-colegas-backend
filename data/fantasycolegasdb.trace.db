@@ -1,4 +1,0 @@
-2025-08-05 18:11:48.174877+02:00 jdbc[3]: exception
-org.h2.jdbc.JdbcSQLSyntaxErrorException: Tabla "PLAYER" no encontrada
-Table "PLAYER" not found; SQL statement:
-INSERT INTO player (name, image, total_points, is_placeholder, league_id) VALUES ('Jugador Vacío', 'https://example.com/placeholder-image.png', 0, true, NULL) [42102-232]
