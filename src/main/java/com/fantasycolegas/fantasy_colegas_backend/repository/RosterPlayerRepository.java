@@ -1,7 +1,7 @@
 package com.fantasycolegas.fantasy_colegas_backend.repository;
 
 import com.fantasycolegas.fantasy_colegas_backend.model.League;
-import com.fantasycolegas.fantasy_colegas_backend.model.PlayerTeamRole;
+import com.fantasycolegas.fantasy_colegas_backend.model.enums.PlayerTeamRole;
 import com.fantasycolegas.fantasy_colegas_backend.model.RosterPlayer;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;

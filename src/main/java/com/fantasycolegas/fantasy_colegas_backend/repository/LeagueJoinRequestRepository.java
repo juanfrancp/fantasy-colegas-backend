@@ -3,7 +3,7 @@ package com.fantasycolegas.fantasy_colegas_backend.repository;
 
 import com.fantasycolegas.fantasy_colegas_backend.model.League;
 import com.fantasycolegas.fantasy_colegas_backend.model.LeagueJoinRequest;
-import com.fantasycolegas.fantasy_colegas_backend.model.RequestStatus;
+import com.fantasycolegas.fantasy_colegas_backend.model.enums.RequestStatus;
 import com.fantasycolegas.fantasy_colegas_backend.model.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;

@@ -1,6 +1,6 @@
 package com.fantasycolegas.fantasy_colegas_backend.repository;
 
-import com.fantasycolegas.fantasy_colegas_backend.model.LeagueRole;
+import com.fantasycolegas.fantasy_colegas_backend.model.enums.LeagueRole;
 import com.fantasycolegas.fantasy_colegas_backend.model.UserLeagueRole;
 import com.fantasycolegas.fantasy_colegas_backend.model.UserLeagueRoleId;
 import org.springframework.data.jpa.repository.JpaRepository;

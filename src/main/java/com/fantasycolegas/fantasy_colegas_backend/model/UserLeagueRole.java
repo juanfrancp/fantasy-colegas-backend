@@ -1,12 +1,12 @@
 package com.fantasycolegas.fantasy_colegas_backend.model;
 
+import com.fantasycolegas.fantasy_colegas_backend.model.enums.LeagueRole;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
 
 import java.io.Serializable;
-import java.util.Objects;
 
 @Entity
 @Table(name = "user_league_roles")

@@ -1,6 +1,6 @@
 package com.fantasycolegas.fantasy_colegas_backend.dto.request;
 
-import com.fantasycolegas.fantasy_colegas_backend.model.PlayerTeamRole;
+import com.fantasycolegas.fantasy_colegas_backend.model.enums.PlayerTeamRole;
 import lombok.Data;
 
 @Data

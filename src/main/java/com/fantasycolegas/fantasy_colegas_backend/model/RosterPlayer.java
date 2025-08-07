@@ -1,5 +1,6 @@
 package com.fantasycolegas.fantasy_colegas_backend.model;
 
+import com.fantasycolegas.fantasy_colegas_backend.model.enums.PlayerTeamRole;
 import jakarta.persistence.*;
 import lombok.Data;
 

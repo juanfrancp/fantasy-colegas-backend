@@ -1,6 +1,6 @@
 package com.fantasycolegas.fantasy_colegas_backend.dto.request;
 
-import com.fantasycolegas.fantasy_colegas_backend.model.LeagueRole;
+import com.fantasycolegas.fantasy_colegas_backend.model.enums.LeagueRole;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 

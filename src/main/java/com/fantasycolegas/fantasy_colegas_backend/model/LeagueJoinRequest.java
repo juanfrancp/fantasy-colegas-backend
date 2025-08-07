@@ -1,6 +1,7 @@
 // Archivo: LeagueJoinRequest.java
 package com.fantasycolegas.fantasy_colegas_backend.model;
 
+import com.fantasycolegas.fantasy_colegas_backend.model.enums.RequestStatus;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
