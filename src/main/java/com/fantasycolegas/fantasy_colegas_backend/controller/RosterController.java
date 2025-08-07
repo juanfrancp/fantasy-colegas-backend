@@ -1,5 +1,6 @@
 package com.fantasycolegas.fantasy_colegas_backend.controller;
 
+import com.fantasycolegas.fantasy_colegas_backend.dto.request.AddPlayerToRosterDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.request.RosterCreateDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.response.RosterPlayerResponseDto;
 import com.fantasycolegas.fantasy_colegas_backend.service.RosterService;
@@ -41,6 +42,35 @@ public class RosterController {
         try {
             List<RosterPlayerResponseDto> roster = rosterService.getUserRoster(leagueId, currentUser.getId());
             return ResponseEntity.ok(roster);
+        } catch (ResponseStatusException e) {
+            return ResponseEntity.status(e.getStatusCode()).body(e.getReason());
+        }
+    }
+
+    @DeleteMapping("/leagues/{leagueId}/rosters/players/{playerId}")
+    public ResponseEntity<String> removePlayerFromRoster(@PathVariable Long leagueId,
+                                                         @PathVariable Long playerId,
+                                                         @AuthenticationPrincipal CustomUserDetails currentUser) {
+        try {
+            String message = rosterService.removePlayerFromRoster(leagueId, currentUser.getId(), playerId);
+            return new ResponseEntity<>(message, HttpStatus.OK);
+        } catch (ResponseStatusException e) {
+            return ResponseEntity.status(e.getStatusCode()).body(e.getReason());
+        }
+    }
+
+    @PutMapping("/leagues/{leagueId}/rosters/players")
+    public ResponseEntity<String> addPlayerToRoster(@PathVariable Long leagueId,
+                                                    @RequestBody AddPlayerToRosterDto addPlayerDto,
+                                                    @AuthenticationPrincipal CustomUserDetails currentUser) {
+        try {
+            String message = rosterService.addPlayerToRoster(
+                    leagueId,
+                    currentUser.getId(),
+                    addPlayerDto.getPlayerId(),
+                    addPlayerDto.getPosition()
+            );
+            return new ResponseEntity<>(message, HttpStatus.OK);
         } catch (ResponseStatusException e) {
             return ResponseEntity.status(e.getStatusCode()).body(e.getReason());
         }

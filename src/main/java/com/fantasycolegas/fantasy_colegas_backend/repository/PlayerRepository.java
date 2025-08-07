@@ -9,11 +9,10 @@ import java.util.Optional;
 
 @Repository
 public interface PlayerRepository extends JpaRepository<Player, Long> {
-    List<Player> findByLeagueId(Long leagueId);
+    List<Player> findAllByLeagueId(Long leagueId);
 
-    // Método para encontrar el jugador vacío
     Optional<Player> findByIsPlaceholderTrue();
 
-    // Método para encontrar jugadores que no son placeholder en una liga
     List<Player> findByLeagueIdAndIsPlaceholderFalse(Long leagueId);
+
 }

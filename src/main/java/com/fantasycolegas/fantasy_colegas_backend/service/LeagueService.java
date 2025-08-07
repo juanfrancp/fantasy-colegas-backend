@@ -331,11 +331,30 @@ public class LeagueService {
     }
 
     @Transactional
-    public void deleteLeague(Long id) {
-        if (!leagueRepository.existsById(id)) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Liga no encontrada");
+    public void deleteLeague(Long leagueId, Long userId) {
+        // 1. Verificación de permisos de administrador (la anotación @PreAuthorize ya lo hace, pero es buena práctica tener la lógica en el servicio también)
+        if (!checkIfUserIsAdmin(leagueId, userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "No tienes permisos de administrador para eliminar esta liga.");
         }
-        leagueRepository.deleteById(id);
+
+        // 2. Obtener la liga
+        League league = leagueRepository.findById(leagueId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Liga no encontrada."));
+
+        // 3. Eliminar todos los RosterPlayers asociados a la liga
+        List<RosterPlayer> rosterPlayers = rosterPlayerRepository.findAllByLeagueId(leagueId);
+        rosterPlayerRepository.deleteAll(rosterPlayers);
+
+        // 4. Eliminar todos los jugadores asociados a la liga
+        List<Player> players = playerRepository.findAllByLeagueId(leagueId);
+        playerRepository.deleteAll(players);
+
+        // 5. Eliminar todos los roles de usuario asociados a la liga
+        List<UserLeagueRole> userLeagueRoles = userLeagueRoleRepository.findAllByLeagueId(leagueId);
+        userLeagueRoleRepository.deleteAll(userLeagueRoles);
+
+        // 6. Eliminar la liga
+        leagueRepository.delete(league);
     }
 
     // Método para salir de la liga (CORREGIDO)
@@ -373,7 +392,7 @@ public class LeagueService {
 
     @Transactional
     public boolean checkIfUserIsAdmin(Long leagueId, Long userId) {
-        return userLeagueRoleRepository.findByLeagueId(leagueId).stream()
+        return userLeagueRoleRepository.findAllByLeagueId(leagueId).stream()
                 .anyMatch(ulr -> ulr.getUser().getId().equals(userId) && ulr.getRole() == LeagueRole.ADMIN);
     }
 

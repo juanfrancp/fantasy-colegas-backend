@@ -4,10 +4,7 @@ import com.fantasycolegas.fantasy_colegas_backend.dto.request.RosterCreateDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.request.RosterPlayerDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.response.RosterPlayerResponseDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.response.RosterResponseDto;
-import com.fantasycolegas.fantasy_colegas_backend.model.League;
-import com.fantasycolegas.fantasy_colegas_backend.model.PlayerTeamRole;
-import com.fantasycolegas.fantasy_colegas_backend.model.RosterPlayer;
-import com.fantasycolegas.fantasy_colegas_backend.model.User;
+import com.fantasycolegas.fantasy_colegas_backend.model.*;
 import com.fantasycolegas.fantasy_colegas_backend.repository.LeagueRepository;
 import com.fantasycolegas.fantasy_colegas_backend.repository.PlayerRepository;
 import com.fantasycolegas.fantasy_colegas_backend.repository.RosterPlayerRepository;
@@ -18,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -131,5 +129,104 @@ public class RosterService {
                         rosterPlayer.getPlayer().getTotalPoints()
                 ))
                 .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public String removePlayerFromRoster(Long leagueId, Long userId, Long playerIdToRemove) {
+        // 1. Validar que el usuario es miembro de la liga
+        if (!leagueService.isUserParticipant(leagueId, userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo los participantes de la liga pueden modificar su equipo.");
+        }
+
+        // 2. Obtener el roster del usuario en la liga
+        List<RosterPlayer> roster = rosterPlayerRepository.findByUserIdAndLeagueId(userId, leagueId);
+        if (roster.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "El usuario no tiene un equipo en esta liga.");
+        }
+
+        // 3. Buscar el jugador en el roster
+        Optional<RosterPlayer> playerToRemoveOpt = roster.stream()
+                .filter(rp -> rp.getPlayer().getId().equals(playerIdToRemove))
+                .findFirst();
+
+        if (playerToRemoveOpt.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "El jugador a eliminar no se encuentra en tu equipo.");
+        }
+
+        RosterPlayer rosterPlayerToRemove = playerToRemoveOpt.get();
+        Player playerToRemove = rosterPlayerToRemove.getPlayer();
+
+        // 4. No permitir la eliminación del "jugador vacío"
+        if (playerToRemove.isPlaceholder()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No puedes eliminar al jugador vacío.");
+        }
+
+        // 5. Encontrar el "jugador vacío" de la aplicación
+        Player placeholderPlayer = playerRepository.findByIsPlaceholderTrue()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "El jugador vacío no se encuentra en la base de datos. Contacta con el administrador."));
+
+        // 6. Asignar el "jugador vacío" al slot del jugador eliminado
+        rosterPlayerToRemove.setPlayer(placeholderPlayer);
+        // Si el jugador eliminado era el portero, el jugador vacío debe tener el rol de portero
+        if (rosterPlayerToRemove.getRole() == PlayerTeamRole.PORTERO) {
+            rosterPlayerToRemove.setRole(PlayerTeamRole.PORTERO);
+        } else {
+            rosterPlayerToRemove.setRole(PlayerTeamRole.CAMPO);
+        }
+
+        // 7. Guardar el cambio
+        rosterPlayerRepository.save(rosterPlayerToRemove);
+
+        return "Jugador eliminado y reemplazado con éxito.";
+    }
+
+    @Transactional
+    public String addPlayerToRoster(Long leagueId, Long userId, Long playerIdToAdd, PlayerTeamRole position) {
+        // 1. Validar que el usuario es miembro de la liga
+        // (Asumo que esta validación ya existe en otro lugar o se puede implementar con un método auxiliar)
+
+        // 2. Encontrar al jugador que se quiere añadir
+        Player playerToAdd = playerRepository.findById(playerIdToAdd)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "El jugador a añadir no existe."));
+
+        // **NUEVA VALIDACIÓN: Verificar si el jugador ya está en el equipo**
+        boolean playerAlreadyInRoster = rosterPlayerRepository.existsByUserIdAndLeagueIdAndPlayerId(userId, leagueId, playerIdToAdd);
+        if (playerAlreadyInRoster) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El jugador ya se encuentra en tu equipo.");
+        }
+
+        // 3. Encontrar el "jugador vacío" para identificar las posiciones libres
+        Player placeholderPlayer = playerRepository.findByIsPlaceholderTrue()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "El jugador vacío no se encuentra en la base de datos. Contacta con el administrador."));
+
+        // 4. Buscar el RosterPlayer que se va a actualizar (una posición vacía)
+        Optional<RosterPlayer> emptyPositionOpt;
+
+        if (position == PlayerTeamRole.PORTERO) {
+            // Buscamos la posición de portero que esté libre (ocupada por el jugador vacío)
+            emptyPositionOpt = rosterPlayerRepository.findByUserIdAndLeagueIdAndRoleAndPlayerId(
+                    userId, leagueId, PlayerTeamRole.PORTERO, placeholderPlayer.getId()
+            );
+        } else {
+            // Buscamos cualquier posición de campo que esté libre
+            emptyPositionOpt = rosterPlayerRepository.findFirstByUserIdAndLeagueIdAndRoleAndPlayerId(
+                    userId, leagueId, PlayerTeamRole.CAMPO, placeholderPlayer.getId()
+            );
+        }
+
+        // 5. Validar si la posición está disponible
+        if (emptyPositionOpt.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No hay posiciones disponibles para el rol de " + position.name() + " en tu equipo.");
+        }
+
+        RosterPlayer emptyPosition = emptyPositionOpt.get();
+
+        // 6. Asignar el nuevo jugador a la posición vacía
+        emptyPosition.setPlayer(playerToAdd);
+
+        // 7. Guardar el cambio
+        rosterPlayerRepository.save(emptyPosition);
+
+        return "Jugador " + playerToAdd.getName() + " añadido a tu equipo con éxito.";
     }
 }

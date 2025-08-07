@@ -127,9 +127,9 @@ public class LeagueController {
 
     @PreAuthorize("@leagueService.checkIfUserIsAdmin(#id, principal.id)")
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteLeague(@PathVariable Long id) {
+    public ResponseEntity<?> deleteLeague(@PathVariable Long id, @AuthenticationPrincipal CustomUserDetails currentUser) {
         try {
-            leagueService.deleteLeague(id);
+            leagueService.deleteLeague(id, currentUser.getId());
             return ResponseEntity.noContent().build();
         } catch (ResponseStatusException e) {
             return ResponseEntity.status(e.getStatusCode()).body(new ErrorResponse(e.getReason()));

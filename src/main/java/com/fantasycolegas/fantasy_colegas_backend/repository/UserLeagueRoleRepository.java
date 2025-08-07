@@ -11,7 +11,7 @@ import java.util.Optional;
 
 @Repository
 public interface UserLeagueRoleRepository extends JpaRepository<UserLeagueRole, UserLeagueRoleId> {
-    List<UserLeagueRole> findByLeagueId(Long leagueId);
+    List<UserLeagueRole> findAllByLeagueId(Long leagueId);
     boolean existsByLeagueIdAndUserId(Long leagueId, Long userId);
     Optional<UserLeagueRole> findByLeagueIdAndUserId(Long leagueId, Long userId);
     long countByLeagueIdAndRole(Long leagueId, LeagueRole role);

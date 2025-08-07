@@ -6,25 +6,31 @@ import com.fantasycolegas.fantasy_colegas_backend.dto.request.PointsUpdateDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.response.PlayerResponseDto;
 import com.fantasycolegas.fantasy_colegas_backend.model.League;
 import com.fantasycolegas.fantasy_colegas_backend.model.Player;
+import com.fantasycolegas.fantasy_colegas_backend.model.RosterPlayer;
 import com.fantasycolegas.fantasy_colegas_backend.repository.LeagueRepository;
 import com.fantasycolegas.fantasy_colegas_backend.repository.PlayerRepository;
+import com.fantasycolegas.fantasy_colegas_backend.repository.RosterPlayerRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import jakarta.transaction.Transactional;
 
+import java.util.List;
+
 @Service
 public class PlayerService {
 
     private final PlayerRepository playerRepository;
     private final LeagueRepository leagueRepository;
-    private final LeagueService leagueService; // Para reutilizar el check de admin
+    private final LeagueService leagueService;
+    private final RosterPlayerRepository rosterPlayerRepository;
 
-    public PlayerService(PlayerRepository playerRepository, LeagueRepository leagueRepository, LeagueService leagueService) {
+    public PlayerService(PlayerRepository playerRepository, LeagueRepository leagueRepository, LeagueService leagueService, RosterPlayerRepository rosterPlayerRepository) {
         this.playerRepository = playerRepository;
         this.leagueRepository = leagueRepository;
         this.leagueService = leagueService;
+        this.rosterPlayerRepository = rosterPlayerRepository;
     }
 
     @Transactional
@@ -101,7 +107,16 @@ public class PlayerService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El jugador no pertenece a la liga especificada.");
         }
 
-        // 4. Eliminar el jugador
+        // 4. Obtener el jugador vacío (placeholder)
+        Player placeholderPlayer = playerRepository.findByIsPlaceholderTrue()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "El jugador vacío no se encuentra en la base de datos."));
+
+        // 5. Reemplazar el jugador en todos los rosters
+        List<RosterPlayer> rosterEntries = rosterPlayerRepository.findAllByPlayerId(playerId);
+        rosterEntries.forEach(entry -> entry.setPlayer(placeholderPlayer));
+        rosterPlayerRepository.saveAll(rosterEntries);
+
+        // 6. Eliminar el jugador
         playerRepository.delete(player);
     }
 
