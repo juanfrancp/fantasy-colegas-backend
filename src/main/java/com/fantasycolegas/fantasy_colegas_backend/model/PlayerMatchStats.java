@@ -1,11 +1,15 @@
 package com.fantasycolegas.fantasy_colegas_backend.model;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Entity
-@Data
 @Table(name = "player_match_stats")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class PlayerMatchStats {
 
     @Id
@@ -20,28 +24,28 @@ public class PlayerMatchStats {
     @JoinColumn(name = "player_id", nullable = false)
     private Player player;
 
-    // Estadísticas obligatorias
-    private int golesMarcados = 0;
-    private int fallosClarosDeGol = 0;
-    private int asistencias = 0;
-    private int golesEncajadosComoPortero = 0;
-    private int paradasComoPortero = 0;
-    private int cesionesConcedidas = 0;
-    private int faltasCometidas = 0;
-    private int faltasRecibidas = 0;
-    private int penaltisRecibidos = 0;
-    private int penaltisCometidos = 0;
+    private int golesMarcados;
+    private int fallosClarosDeGol;
+    private int asistencias;
+    private int golesEncajadosComoPortero;
+    private int paradasComoPortero;
+    private int cesionesConcedidas;
+    private int faltasCometidas;
+    private int faltasRecibidas;
+    private int penaltisRecibidos;
+    private int penaltisCometidos;
 
-    // Estadísticas opcionales
-    private int pasesAcertados = 0;
-    private int pasesFallados = 0;
-    private int robosDeBalon = 0;
-    private int tirosCompletados = 0;
-    private int tirosEntreLosTresPalos = 0;
-    private int tiempoJugado = 0;
-    private int tarjetasAmarillas = 0;
-    private int tarjetasRojas = 0;
+    private int pasesAcertados;
+    private int pasesFallados;
+    private int robosDeBalon;
+    private int tirosCompletados;
+    private int tirosEntreLosTresPalos;
+    private int tiempoJugado;
+    private int tarjetasAmarillas;
+    private int tarjetasRojas;
 
-    // Puntuación calculada
-    private double totalPoints = 0.0;
+    // Campos nuevos para los puntos de campo y portero
+    private double totalFieldPoints;
+    private double totalGoalkeeperPoints;
+
 }

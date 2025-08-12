@@ -5,15 +5,9 @@ import com.fantasycolegas.fantasy_colegas_backend.dto.request.MatchCreateDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.request.PlayerMatchStatsUpdateDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.response.MatchResponseDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.response.PlayerMatchStatsResponseDto;
-import com.fantasycolegas.fantasy_colegas_backend.model.League;
-import com.fantasycolegas.fantasy_colegas_backend.model.Match;
-import com.fantasycolegas.fantasy_colegas_backend.model.Player;
-import com.fantasycolegas.fantasy_colegas_backend.model.PlayerMatchStats;
+import com.fantasycolegas.fantasy_colegas_backend.model.*;
 import com.fantasycolegas.fantasy_colegas_backend.model.enums.PlayerTeamRole;
-import com.fantasycolegas.fantasy_colegas_backend.repository.LeagueRepository;
-import com.fantasycolegas.fantasy_colegas_backend.repository.MatchRepository;
-import com.fantasycolegas.fantasy_colegas_backend.repository.PlayerMatchStatsRepository;
-import com.fantasycolegas.fantasy_colegas_backend.repository.PlayerRepository;
+import com.fantasycolegas.fantasy_colegas_backend.repository.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,14 +25,18 @@ public class MatchService {
     private final PlayerMatchStatsRepository playerMatchStatsRepository;
     private final LeagueService leagueService;
     private final PointsCalculationService pointsCalculationService;
+    private final RosterPlayerRepository rosterPlayerRepository;
+    private final UserRepository userRepository;
 
-    public MatchService(MatchRepository matchRepository, LeagueRepository leagueRepository, PlayerRepository playerRepository, PlayerMatchStatsRepository playerMatchStatsRepository, LeagueService leagueService, PointsCalculationService pointsCalculationService) {
+    public MatchService(MatchRepository matchRepository, LeagueRepository leagueRepository, PlayerRepository playerRepository, PlayerMatchStatsRepository playerMatchStatsRepository, LeagueService leagueService, PointsCalculationService pointsCalculationService, RosterPlayerRepository rosterPlayerRepository, UserRepository userRepository) {
         this.matchRepository = matchRepository;
         this.leagueRepository = leagueRepository;
         this.playerRepository = playerRepository;
         this.playerMatchStatsRepository = playerMatchStatsRepository;
         this.leagueService = leagueService;
         this.pointsCalculationService = pointsCalculationService;
+        this.rosterPlayerRepository = rosterPlayerRepository;
+        this.userRepository = userRepository;
     }
 
     @Transactional
@@ -103,19 +101,20 @@ public class MatchService {
         playerMatchStats.setTarjetasRojas(statsUpdateDto.getTarjetasRojas());
 
         // --- LÓGICA DE CÁLCULO DE PUNTOS ---
-        // 1. Necesitas obtener el rol del jugador (CAMPO o PORTERO) para aplicar las reglas correctas.
-        // Asumo que tienes una forma de obtener este rol, ya sea de la entidad `Player` o `RosterPlayers`.
-        // Por ahora, asumiré un rol de CAMPO por defecto. DEBES REEMPLAZAR ESTO con la lógica correcta.
-        PlayerTeamRole playerRole = PlayerTeamRole.CAMPO; // <<-- REEMPLAZAR CON LÓGICA REAL
+        // 1. Calcular los puntos de campo y portero por separado
+        double calculatedFieldPoints = pointsCalculationService.calculatePointsForRole(statsUpdateDto, PlayerTeamRole.CAMPO);
+        double calculatedGoalkeeperPoints = pointsCalculationService.calculatePointsForRole(statsUpdateDto, PlayerTeamRole.PORTERO);
 
-        // 2. Llamar al servicio de cálculo de puntos
-        double calculatedPoints = pointsCalculationService.calculateTotalPoints(statsUpdateDto, playerRole);
+        // 2. Asignar los puntos calculados a la entidad antes de guardarla
+        playerMatchStats.setTotalFieldPoints(calculatedFieldPoints);
+        playerMatchStats.setTotalGoalkeeperPoints(calculatedGoalkeeperPoints);
 
-        // 3. Asignar los puntos calculados a la entidad antes de guardarla
-        playerMatchStats.setTotalPoints(calculatedPoints);
-        // --- FIN DE LA LÓGICA DE CÁLCULO ---
-
+        // 3. Guardar la entidad actualizada en la base de datos
         playerMatchStatsRepository.save(playerMatchStats);
+
+        // 4. Actualizar los puntos de los usuarios
+        updateUserPoints(playerMatchStats, player.getLeague().getId());
+        // --- FIN DEL CÁLCULO Y ACTUALIZACIÓN ---
 
         return new PlayerMatchStatsResponseDto(
                 playerMatchStats.getId(),
@@ -138,7 +137,8 @@ public class MatchService {
                 playerMatchStats.getTiempoJugado(),
                 playerMatchStats.getTarjetasAmarillas(),
                 playerMatchStats.getTarjetasRojas(),
-                playerMatchStats.getTotalPoints()
+                playerMatchStats.getTotalFieldPoints(),
+                playerMatchStats.getTotalGoalkeeperPoints()
         );
     }
 
@@ -146,5 +146,28 @@ public class MatchService {
         Match match = matchRepository.findById(matchId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Partido no encontrado."));
         return leagueService.checkIfUserIsAdmin(match.getLeague().getId(), userId);
+    }
+
+    @Transactional
+    private void updateUserPoints(PlayerMatchStats playerMatchStats, Long leagueId) {
+        List<RosterPlayer> rosterPlayers = rosterPlayerRepository.findByUserIdAndLeagueId(playerMatchStats.getPlayer().getId(), leagueId);
+
+        for (RosterPlayer rosterPlayer : rosterPlayers) {
+            User user = rosterPlayer.getUser();
+            double pointsToAdd = 0.0;
+
+            if (rosterPlayer.getRole() == PlayerTeamRole.CAMPO) {
+                pointsToAdd = playerMatchStats.getTotalFieldPoints();
+            } else if (rosterPlayer.getRole() == PlayerTeamRole.PORTERO) {
+                pointsToAdd = playerMatchStats.getTotalGoalkeeperPoints();
+            }
+
+            // Actualizar los puntos del usuario (asumiendo que hay un campo `totalPoints` en la entidad `User`)
+            // user.setTotalPoints(user.getTotalPoints() + pointsToAdd);
+            // userRepository.save(user); // Guarda el usuario con los puntos actualizados
+
+            // La lógica anterior es para un contador global, si quieres un contador por liga
+            // deberás modificar las entidades User y UserLeagueRoles para que lo permitan
+        }
     }
 }

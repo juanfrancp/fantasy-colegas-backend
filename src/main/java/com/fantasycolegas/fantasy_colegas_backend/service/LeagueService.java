@@ -28,16 +28,61 @@ public class LeagueService {
     private final LeagueJoinRequestRepository leagueJoinRequestRepository;
     private final PlayerRepository playerRepository;
     private final RosterPlayerRepository rosterPlayerRepository;
+    private PlayerMatchStatsRepository playerMatchStatsRepository;
 
     public LeagueService(LeagueRepository leagueRepository, UserRepository userRepository,
                          UserLeagueRoleRepository userLeagueRoleRepository,
-                         LeagueJoinRequestRepository leagueJoinRequestRepository, PlayerRepository playerRepository, RosterPlayerRepository rosterPlayerRepository) {
+                         LeagueJoinRequestRepository leagueJoinRequestRepository, PlayerRepository playerRepository, RosterPlayerRepository rosterPlayerRepository, PlayerMatchStatsRepository playerMatchStatsRepository) {
         this.leagueRepository = leagueRepository;
         this.userRepository = userRepository;
         this.userLeagueRoleRepository = userLeagueRoleRepository;
         this.leagueJoinRequestRepository = leagueJoinRequestRepository;
         this.playerRepository = playerRepository;
         this.rosterPlayerRepository = rosterPlayerRepository;
+        this.playerMatchStatsRepository = playerMatchStatsRepository;
+    }
+
+
+    public List<UserScoreDto> getLeagueScoreboard(Long leagueId) {
+        // Obtenemos los usuarios que tienen jugadores en la liga
+        List<Long> userIds = rosterPlayerRepository.findDistinctUserIdsByLeagueId(leagueId);
+
+        List<UserScoreDto> scoreboard = new ArrayList<>();
+        for (Long userId : userIds) {
+            double totalPoints = calculateUserPoints(leagueId, userId);
+            UserScoreDto userScore = new UserScoreDto(userId, totalPoints);
+            scoreboard.add(userScore);
+        }
+
+        // Ordenamos el marcador de mayor a menor puntuación
+        scoreboard.sort(Comparator.comparingDouble(UserScoreDto::getTotalPoints).reversed());
+        return scoreboard;
+    }
+
+    public UserScoreDto getUserPointsInLeague(Long leagueId, Long userId) {
+        double totalPoints = calculateUserPoints(leagueId, userId);
+        return new UserScoreDto(userId, totalPoints);
+    }
+
+    private double calculateUserPoints(Long leagueId, Long userId) {
+        // En este método, obtenemos todos los jugadores que pertenecen al usuario en la liga
+        List<RosterPlayer> rosterPlayers = rosterPlayerRepository.findByUserIdAndLeagueId(userId, leagueId);
+
+        double totalUserPoints = 0;
+        for (RosterPlayer rosterPlayer : rosterPlayers) {
+            // Sumamos los puntos de cada jugador en la plantilla del usuario
+            List<PlayerMatchStats> stats = playerMatchStatsRepository.findByPlayerId(rosterPlayer.getPlayer().getId());
+            for (PlayerMatchStats stat : stats) {
+                // La lógica para sumar los puntos depende del rol (campo o portero)
+                // y de tus reglas de puntuación.
+                if (rosterPlayer.getRole() == PlayerTeamRole.CAMPO) {
+                    totalUserPoints += stat.getTotalFieldPoints();
+                } else if (rosterPlayer.getRole() == PlayerTeamRole.PORTERO) {
+                    totalUserPoints += stat.getTotalGoalkeeperPoints();
+                }
+            }
+        }
+        return totalUserPoints;
     }
 
     public RosterResponseDto getRosterByTeamId(Long leagueId, Long teamId, String requestingUsername) {

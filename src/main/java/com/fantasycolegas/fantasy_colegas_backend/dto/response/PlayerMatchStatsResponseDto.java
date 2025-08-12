@@ -34,5 +34,6 @@ public class PlayerMatchStatsResponseDto {
     private int tarjetasRojas;
 
     // Puntos totales calculados
-    private double totalPoints;
+    private double totalFieldPoints;
+    private double totalGoalKeeperPoints;
 }

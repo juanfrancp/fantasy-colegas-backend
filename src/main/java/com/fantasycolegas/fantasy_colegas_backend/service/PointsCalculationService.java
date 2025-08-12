@@ -16,36 +16,39 @@ public class PointsCalculationService {
         this.scoringRuleRepository = scoringRuleRepository;
     }
 
-    public double calculateTotalPoints(PlayerMatchStatsUpdateDto statsDto, PlayerTeamRole playerRole) {
-        // Obtenemos todas las reglas de puntuación para el rol del jugador (CAMPO o PORTERO)
+    public double calculatePointsForRole(PlayerMatchStatsUpdateDto statsDto, PlayerTeamRole playerRole) {
         List<ScoringRule> rules = scoringRuleRepository.findAllByRole(playerRole);
         double totalPoints = 0.0;
 
         for (ScoringRule rule : rules) {
-            double pointsToAdd = getStatValue(statsDto, rule.getStatName()) * rule.getPointsPerUnit();
-            totalPoints += pointsToAdd;
+            double statValue = getStatValue(statsDto, rule.getStatName());
+            totalPoints += statValue * rule.getPointsPerUnit();
         }
 
         return totalPoints;
     }
 
-    private int getStatValue(PlayerMatchStatsUpdateDto statsDto, String statName) {
-        // Aquí necesitas mapear el nombre de la estadística del DTO con los getters
-        // Esto es un ejemplo, debes asegurar que los nombres coincidan
+    private double getStatValue(PlayerMatchStatsUpdateDto statsDto, String statName) {
         switch (statName) {
-            case "golesMarcados":
-                return statsDto.getGolesMarcados();
-            case "asistencias":
-                return statsDto.getAsistencias();
-            case "fallosClarosDeGol":
-                return statsDto.getFallosClarosDeGol();
-            // ... Agrega todos los casos para las demás estadísticas
-            case "tarjetasAmarillas":
-                return statsDto.getTarjetasAmarillas();
-            case "tarjetasRojas":
-                return statsDto.getTarjetasRojas();
-            default:
-                return 0; // Si la estadística no está en la lista, no se añaden puntos
+            case "golesMarcados": return statsDto.getGolesMarcados();
+            case "fallosClarosDeGol": return statsDto.getFallosClarosDeGol();
+            case "asistencias": return statsDto.getAsistencias();
+            case "golesEncajadosComoPortero": return statsDto.getGolesEncajadosComoPortero();
+            case "paradasComoPortero": return statsDto.getParadasComoPortero();
+            case "cesionesConcedidas": return statsDto.getCesionesConcedidas();
+            case "faltasCometidas": return statsDto.getFaltasCometidas();
+            case "faltasRecibidas": return statsDto.getFaltasRecibidas();
+            case "penaltisRecibidos": return statsDto.getPenaltisRecibidos();
+            case "penaltisCometidos": return statsDto.getPenaltisCometidos();
+            case "pasesAcertados": return statsDto.getPasesAcertados();
+            case "pasesFallados": return statsDto.getPasesFallados();
+            case "robosDeBalon": return statsDto.getRobosDeBalon();
+            case "tirosCompletados": return statsDto.getTirosCompletados();
+            case "tirosEntreLosTresPalos": return statsDto.getTirosEntreLosTresPalos();
+            case "tiempoJugado": return statsDto.getTiempoJugado();
+            case "tarjetasAmarillas": return statsDto.getTarjetasAmarillas();
+            case "tarjetasRojas": return statsDto.getTarjetasRojas();
+            default: return 0.0;
         }
     }
 }

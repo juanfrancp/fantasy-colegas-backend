@@ -4,6 +4,7 @@ import com.fantasycolegas.fantasy_colegas_backend.model.League;
 import com.fantasycolegas.fantasy_colegas_backend.model.enums.PlayerTeamRole;
 import com.fantasycolegas.fantasy_colegas_backend.model.RosterPlayer;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -26,4 +27,7 @@ public interface RosterPlayerRepository extends JpaRepository<RosterPlayer, Long
     List<RosterPlayer> findAllByPlayerId(Long playerId);
 
     List<RosterPlayer> findAllByLeagueId(Long leagueId);
+
+    @Query("SELECT DISTINCT rp.user.id FROM RosterPlayer rp WHERE rp.league.id = :leagueId")
+    List<Long> findDistinctUserIdsByLeagueId(Long leagueId);
 }

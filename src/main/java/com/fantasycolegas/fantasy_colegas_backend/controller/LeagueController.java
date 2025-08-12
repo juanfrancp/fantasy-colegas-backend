@@ -2,10 +2,7 @@
 package com.fantasycolegas.fantasy_colegas_backend.controller;
 
 import com.fantasycolegas.fantasy_colegas_backend.dto.request.*;
-import com.fantasycolegas.fantasy_colegas_backend.dto.response.ErrorResponse;
-import com.fantasycolegas.fantasy_colegas_backend.dto.response.JoinRequestResponseDto;
-import com.fantasycolegas.fantasy_colegas_backend.dto.response.LeagueResponseDto;
-import com.fantasycolegas.fantasy_colegas_backend.dto.response.RosterResponseDto;
+import com.fantasycolegas.fantasy_colegas_backend.dto.response.*;
 import com.fantasycolegas.fantasy_colegas_backend.model.LeagueJoinRequest;
 import com.fantasycolegas.fantasy_colegas_backend.security.CustomUserDetails;
 import com.fantasycolegas.fantasy_colegas_backend.service.LeagueService;
@@ -31,6 +28,29 @@ public class LeagueController {
     // Inyección de dependencias
     public LeagueController(LeagueService leagueService) {
         this.leagueService = leagueService;
+    }
+
+
+    // Endpoint para obtener el marcador de todos los usuarios de una liga
+    @GetMapping("/{leagueId}/scoreboard")
+    public ResponseEntity<?> getLeagueScoreboard(@PathVariable Long leagueId) {
+        try {
+            List<UserScoreDto> scoreboard = leagueService.getLeagueScoreboard(leagueId);
+            return ResponseEntity.ok(scoreboard);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error al obtener el marcador de la liga.");
+        }
+    }
+
+    // Endpoint para obtener la puntuación de un usuario específico en una liga
+    @GetMapping("/users/{userId}/points")
+    public ResponseEntity<?> getUserPointsInLeague(@PathVariable Long leagueId, @PathVariable Long userId) {
+        try {
+            UserScoreDto userPoints = leagueService.getUserPointsInLeague(leagueId, userId);
+            return ResponseEntity.ok(userPoints);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error al obtener la puntuación del usuario.");
+        }
     }
 
     @GetMapping("/{id}/rosters/{teamId}")
