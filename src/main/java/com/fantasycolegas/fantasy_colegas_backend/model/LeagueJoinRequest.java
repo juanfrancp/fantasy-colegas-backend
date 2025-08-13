@@ -1,11 +1,10 @@
-// Archivo: LeagueJoinRequest.java
 package com.fantasycolegas.fantasy_colegas_backend.model;
 
 import com.fantasycolegas.fantasy_colegas_backend.model.enums.RequestStatus;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
 
 import java.time.LocalDateTime;
 
@@ -20,12 +19,10 @@ public class LeagueJoinRequest {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // Relación ManyToOne: un usuario puede tener muchas solicitudes
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    // Relación ManyToOne: una liga puede tener muchas solicitudes
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "league_id", nullable = false)
     private League league;

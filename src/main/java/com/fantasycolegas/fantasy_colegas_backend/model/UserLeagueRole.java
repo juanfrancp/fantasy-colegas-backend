@@ -2,9 +2,9 @@ package com.fantasycolegas.fantasy_colegas_backend.model;
 
 import com.fantasycolegas.fantasy_colegas_backend.model.enums.LeagueRole;
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
 
 import java.io.Serializable;
 

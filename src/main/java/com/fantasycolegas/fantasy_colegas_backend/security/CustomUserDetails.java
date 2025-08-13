@@ -2,6 +2,7 @@ package com.fantasycolegas.fantasy_colegas_backend.security;
 
 
 import com.fantasycolegas.fantasy_colegas_backend.model.User;
+import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
@@ -10,10 +11,11 @@ import java.util.Collection;
 
 public class CustomUserDetails implements UserDetails {
 
+    @Getter
     private Long id;
-    private String username;
-    private String password;
-    private Collection<? extends GrantedAuthority> authorities;
+    private final String username;
+    private final String password;
+    private final Collection<? extends GrantedAuthority> authorities;
 
     public CustomUserDetails(Long id, String username, String password, Collection<? extends GrantedAuthority> authorities) {
         this.id = id;
@@ -23,17 +25,7 @@ public class CustomUserDetails implements UserDetails {
     }
 
     public static CustomUserDetails build(User user) {
-        // En este caso, no estamos usando roles, por lo que la lista de authorities puede ser vacía.
-        return new CustomUserDetails(
-                user.getId(),
-                user.getUsername(),
-                user.getPassword(),
-                new ArrayList<>()
-        );
-    }
-
-    public Long getId() {
-        return id;
+        return new CustomUserDetails(user.getId(), user.getUsername(), user.getPassword(), new ArrayList<>());
     }
 
     @Override
@@ -51,7 +43,6 @@ public class CustomUserDetails implements UserDetails {
         return authorities;
     }
 
-    // El resto de métodos de la interfaz UserDetails
     @Override
     public boolean isAccountNonExpired() {
         return true;

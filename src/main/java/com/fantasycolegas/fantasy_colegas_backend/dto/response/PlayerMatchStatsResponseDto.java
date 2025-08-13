@@ -11,7 +11,6 @@ public class PlayerMatchStatsResponseDto {
     private Long id;
     private Long playerId;
 
-    // Estadísticas obligatorias
     private int golesMarcados;
     private int fallosClarosDeGol;
     private int asistencias;
@@ -23,7 +22,6 @@ public class PlayerMatchStatsResponseDto {
     private int penaltisRecibidos;
     private int penaltisCometidos;
 
-    // Estadísticas opcionales
     private int pasesAcertados;
     private int pasesFallados;
     private int robosDeBalon;
@@ -32,8 +30,7 @@ public class PlayerMatchStatsResponseDto {
     private int tiempoJugado;
     private int tarjetasAmarillas;
     private int tarjetasRojas;
-
-    // Puntos totales calculados
+    
     private double totalFieldPoints;
     private double totalGoalKeeperPoints;
 }

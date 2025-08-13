@@ -5,7 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
-@AllArgsConstructor // <-- Constructor de 4 argumentos
+@AllArgsConstructor
 @NoArgsConstructor
 public class PlayerResponseDto {
     private Long id;

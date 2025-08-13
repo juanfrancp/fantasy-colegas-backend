@@ -1,8 +1,9 @@
 package com.fantasycolegas.fantasy_colegas_backend.dto.request;
 
 import jakarta.validation.constraints.NotNull;
-import java.time.LocalDate;
 import lombok.Data;
+
+import java.time.LocalDate;
 
 @Data
 public class MatchCreateDto {

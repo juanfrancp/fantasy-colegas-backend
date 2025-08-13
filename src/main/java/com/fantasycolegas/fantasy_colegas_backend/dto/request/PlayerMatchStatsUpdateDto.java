@@ -9,7 +9,6 @@ public class PlayerMatchStatsUpdateDto {
     @NotNull(message = "El ID del jugador es obligatorio.")
     private Long playerId;
 
-    // Estadísticas obligatorias
     private int golesMarcados = 0;
     private int fallosClarosDeGol = 0;
     private int asistencias = 0;
@@ -20,8 +19,7 @@ public class PlayerMatchStatsUpdateDto {
     private int faltasRecibidas = 0;
     private int penaltisRecibidos = 0;
     private int penaltisCometidos = 0;
-
-    // Estadísticas opcionales
+    
     private int pasesAcertados = 0;
     private int pasesFallados = 0;
     private int robosDeBalon = 0;

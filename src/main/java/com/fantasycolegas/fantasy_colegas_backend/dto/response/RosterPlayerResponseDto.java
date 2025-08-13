@@ -6,7 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
-@AllArgsConstructor // <-- Constructor de 5 argumentos
+@AllArgsConstructor
 @NoArgsConstructor
 public class RosterPlayerResponseDto {
     private Long playerId;

@@ -35,7 +35,7 @@ public class UserController {
     }
 
     @PutMapping("/{id}")
-    @PreAuthorize("isAuthenticated() and #id == principal.id") // Solo el usuario puede actualizar su propio perfil
+    @PreAuthorize("isAuthenticated() and #id == principal.id")
     public ResponseEntity<User> updateUser(@PathVariable Long id, @Valid @RequestBody UserUpdateDto userUpdateDto) {
         Optional<User> userOptional = userRepository.findById(id);
 
@@ -61,25 +61,15 @@ public class UserController {
 
     @PreAuthorize("isAuthenticated() and #id == principal.id")
     @PutMapping("/{id}/password")
-    public ResponseEntity<User> updatePassword(@PathVariable Long id, @Valid @RequestBody PasswordUpdateDto passwordUpdateDto,
-                                               @AuthenticationPrincipal CustomUserDetails currentUser) {
+    public ResponseEntity<User> updatePassword(@PathVariable Long id, @Valid @RequestBody PasswordUpdateDto passwordUpdateDto, @AuthenticationPrincipal CustomUserDetails currentUser) {
 
-        // 1. Encontrar el usuario por su ID
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
-
-        // 2. Verificar que la contraseña antigua coincida
+        User user = userRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
         if (!passwordEncoder.matches(passwordUpdateDto.getOldPassword(), user.getPassword())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La contraseña antigua es incorrecta");
         }
-
-        // 3. Codificar y establecer la nueva contraseña
         String newEncodedPassword = passwordEncoder.encode(passwordUpdateDto.getNewPassword());
         user.setPassword(newEncodedPassword);
-
-        // 4. Guardar el usuario actualizado
         User updatedUser = userRepository.save(user);
-
         return ResponseEntity.ok(updatedUser);
     }
 
@@ -87,15 +77,12 @@ public class UserController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
 
-        // 1. Verificar si el usuario existe antes de intentar eliminar
         if (!userRepository.existsById(id)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado");
         }
 
-        // 2. Eliminar el usuario por su ID
         userRepository.deleteById(id);
 
-        // 3. Devolver una respuesta exitosa sin contenido (204 No Content)
         return ResponseEntity.noContent().build();
     }
 }

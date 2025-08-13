@@ -1,4 +1,3 @@
-// AuthService.java
 package com.fantasycolegas.fantasy_colegas_backend.service;
 
 import com.fantasycolegas.fantasy_colegas_backend.dto.request.RegisterDto;
@@ -18,9 +17,8 @@ public class AuthService {
     private PasswordEncoder passwordEncoder;
 
     public boolean registerUser(RegisterDto registerDto) {
-        // Comprobar si el usuario o email ya existe
         if (userRepository.findByUsernameOrEmail(registerDto.getUsername(), registerDto.getEmail()).isPresent()) {
-            return false; // El usuario o email ya están en uso, el registro falla.
+            return false;
         }
 
         User user = new User();
@@ -29,6 +27,6 @@ public class AuthService {
         user.setPassword(passwordEncoder.encode(registerDto.getPassword()));
 
         userRepository.save(user);
-        return true; // Registro exitoso.
+        return true;
     }
 }

@@ -1,7 +1,9 @@
-// Archivo: LeagueController.java
 package com.fantasycolegas.fantasy_colegas_backend.controller;
 
-import com.fantasycolegas.fantasy_colegas_backend.dto.request.*;
+import com.fantasycolegas.fantasy_colegas_backend.dto.request.ChangeRoleDto;
+import com.fantasycolegas.fantasy_colegas_backend.dto.request.JoinLeagueDto;
+import com.fantasycolegas.fantasy_colegas_backend.dto.request.LeagueCreateDto;
+import com.fantasycolegas.fantasy_colegas_backend.dto.request.LeagueTeamSizeUpdateDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.response.*;
 import com.fantasycolegas.fantasy_colegas_backend.model.LeagueJoinRequest;
 import com.fantasycolegas.fantasy_colegas_backend.security.CustomUserDetails;
@@ -25,13 +27,11 @@ public class LeagueController {
 
     private final LeagueService leagueService;
 
-    // Inyección de dependencias
     public LeagueController(LeagueService leagueService) {
         this.leagueService = leagueService;
     }
 
 
-    // Endpoint para obtener el marcador de todos los usuarios de una liga
     @GetMapping("/{leagueId}/scoreboard")
     public ResponseEntity<?> getLeagueScoreboard(@PathVariable Long leagueId) {
         try {
@@ -42,7 +42,6 @@ public class LeagueController {
         }
     }
 
-    // Endpoint para obtener la puntuación de un usuario específico en una liga
     @GetMapping("/users/{userId}/points")
     public ResponseEntity<?> getUserPointsInLeague(@PathVariable Long leagueId, @PathVariable Long userId) {
         try {
@@ -54,16 +53,11 @@ public class LeagueController {
     }
 
     @GetMapping("/{id}/rosters/{teamId}")
-    public ResponseEntity<RosterResponseDto> getRosterByTeamId(
-            @PathVariable("id") Long leagueId,
-            @PathVariable("teamId") Long teamId,
-            @AuthenticationPrincipal UserDetails userDetails) {
+    public ResponseEntity<RosterResponseDto> getRosterByTeamId(@PathVariable("id") Long leagueId, @PathVariable("teamId") Long teamId, @AuthenticationPrincipal UserDetails userDetails) {
 
-        // Obtenemos el username del usuario autenticado
         String requestingUsername = userDetails.getUsername();
 
         try {
-            // Pasamos el username al servicio
             RosterResponseDto rosterDTO = leagueService.getRosterByTeamId(leagueId, teamId, requestingUsername);
             return ResponseEntity.ok(rosterDTO);
         } catch (IllegalArgumentException e) {
@@ -74,9 +68,7 @@ public class LeagueController {
     }
 
     @PatchMapping("/{leagueId}/team-size")
-    public ResponseEntity<?> updateTeamSize(@PathVariable Long leagueId,
-                                            @RequestBody @Valid LeagueTeamSizeUpdateDto teamSizeUpdateDto,
-                                            @AuthenticationPrincipal CustomUserDetails currentUser) {
+    public ResponseEntity<?> updateTeamSize(@PathVariable Long leagueId, @RequestBody @Valid LeagueTeamSizeUpdateDto teamSizeUpdateDto, @AuthenticationPrincipal CustomUserDetails currentUser) {
         try {
             LeagueResponseDto updatedLeague = leagueService.updateLeagueTeamSize(leagueId, teamSizeUpdateDto, currentUser.getId());
             return ResponseEntity.ok(updatedLeague);
@@ -87,10 +79,7 @@ public class LeagueController {
 
     @PreAuthorize("@leagueService.checkIfUserIsAdmin(#leagueId, principal.id)")
     @PatchMapping("/{leagueId}/participants/{targetUserId}/role")
-    public ResponseEntity<?> changeUserRole(@PathVariable Long leagueId,
-                                            @PathVariable Long targetUserId,
-                                            @Valid @RequestBody ChangeRoleDto changeRoleDto,
-                                            @AuthenticationPrincipal CustomUserDetails currentUser) {
+    public ResponseEntity<?> changeUserRole(@PathVariable Long leagueId, @PathVariable Long targetUserId, @Valid @RequestBody ChangeRoleDto changeRoleDto, @AuthenticationPrincipal CustomUserDetails currentUser) {
         try {
             leagueService.changeUserRole(leagueId, currentUser.getId(), targetUserId, changeRoleDto.getNewRole());
             return ResponseEntity.ok().build();
@@ -100,8 +89,7 @@ public class LeagueController {
     }
 
     @PostMapping("/join")
-    public ResponseEntity<?> joinLeague(@RequestBody JoinLeagueDto joinLeagueDto,
-                                        @AuthenticationPrincipal CustomUserDetails userDetails) {
+    public ResponseEntity<?> joinLeague(@RequestBody JoinLeagueDto joinLeagueDto, @AuthenticationPrincipal CustomUserDetails userDetails) {
         try {
             LeagueResponseDto joinedLeague = leagueService.joinLeague(joinLeagueDto.getJoinCode(), userDetails.getId());
             return ResponseEntity.ok(joinedLeague);
@@ -111,8 +99,7 @@ public class LeagueController {
     }
 
     @PostMapping
-    public ResponseEntity<?> createLeague(@Valid @RequestBody LeagueCreateDto leagueCreateDto, // <-- CAMBIO AQUÍ
-                                          @AuthenticationPrincipal CustomUserDetails currentUser) {
+    public ResponseEntity<?> createLeague(@Valid @RequestBody LeagueCreateDto leagueCreateDto, @AuthenticationPrincipal CustomUserDetails currentUser) {
         try {
             LeagueResponseDto createdLeague = leagueService.createLeague(leagueCreateDto, currentUser.getId());
             return new ResponseEntity<>(createdLeague, HttpStatus.CREATED);
@@ -122,8 +109,7 @@ public class LeagueController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> getLeagueById(@PathVariable Long id,
-                                           @AuthenticationPrincipal CustomUserDetails currentUser) {
+    public ResponseEntity<?> getLeagueById(@PathVariable Long id, @AuthenticationPrincipal CustomUserDetails currentUser) {
         try {
             LeagueResponseDto leagueDto = leagueService.getLeagueById(id, currentUser.getId());
             return ResponseEntity.ok(leagueDto);
@@ -134,9 +120,7 @@ public class LeagueController {
 
     @PreAuthorize("@leagueService.checkIfUserIsAdmin(#id, principal.id)")
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateLeague(@PathVariable Long id,
-                                          @Valid @RequestBody LeagueCreateDto leagueCreateDto,
-                                          @AuthenticationPrincipal CustomUserDetails currentUser) {
+    public ResponseEntity<?> updateLeague(@PathVariable Long id, @Valid @RequestBody LeagueCreateDto leagueCreateDto, @AuthenticationPrincipal CustomUserDetails currentUser) {
         try {
             LeagueResponseDto updatedLeague = leagueService.updateLeague(id, leagueCreateDto);
             return ResponseEntity.ok(updatedLeague);
@@ -157,8 +141,7 @@ public class LeagueController {
     }
 
     @PostMapping("/{leagueId}/request-join")
-    public ResponseEntity<?> sendJoinRequest(@PathVariable Long leagueId,
-                                             @AuthenticationPrincipal CustomUserDetails userDetails) {
+    public ResponseEntity<?> sendJoinRequest(@PathVariable Long leagueId, @AuthenticationPrincipal CustomUserDetails userDetails) {
         try {
             leagueService.sendJoinRequest(leagueId, userDetails.getId());
             return ResponseEntity.ok().build();
@@ -172,9 +155,7 @@ public class LeagueController {
     public ResponseEntity<List<JoinRequestResponseDto>> getPendingJoinRequests(@PathVariable Long leagueId) {
         List<LeagueJoinRequest> requests = leagueService.getPendingJoinRequests(leagueId);
 
-        List<JoinRequestResponseDto> requestsDto = requests.stream()
-                .map(this::mapToJoinRequestDto)
-                .collect(Collectors.toList());
+        List<JoinRequestResponseDto> requestsDto = requests.stream().map(this::mapToJoinRequestDto).collect(Collectors.toList());
 
         return ResponseEntity.ok(requestsDto);
     }
@@ -202,8 +183,7 @@ public class LeagueController {
     }
 
     @DeleteMapping("/{leagueId}/leave")
-    public ResponseEntity<?> leaveLeague(@PathVariable Long leagueId,
-                                         @AuthenticationPrincipal CustomUserDetails currentUser) {
+    public ResponseEntity<?> leaveLeague(@PathVariable Long leagueId, @AuthenticationPrincipal CustomUserDetails currentUser) {
         try {
             leagueService.leaveLeague(leagueId, currentUser.getId());
             return ResponseEntity.noContent().build();
@@ -214,8 +194,7 @@ public class LeagueController {
 
     @PreAuthorize("@leagueService.checkIfUserIsAdmin(#leagueId, principal.id)")
     @DeleteMapping("/{leagueId}/expel/{targetUserId}")
-    public ResponseEntity<?> expelUser(@PathVariable Long leagueId, @PathVariable Long targetUserId,
-                                       @AuthenticationPrincipal CustomUserDetails currentUser) {
+    public ResponseEntity<?> expelUser(@PathVariable Long leagueId, @PathVariable Long targetUserId, @AuthenticationPrincipal CustomUserDetails currentUser) {
         try {
             leagueService.expelUser(leagueId, currentUser.getId(), targetUserId);
             return ResponseEntity.noContent().build();
@@ -225,11 +204,6 @@ public class LeagueController {
     }
 
     private JoinRequestResponseDto mapToJoinRequestDto(LeagueJoinRequest request) {
-        return new JoinRequestResponseDto(
-                request.getId(),
-                request.getUser().getId(),
-                request.getUser().getUsername(),
-                request.getRequestDate()
-        );
+        return new JoinRequestResponseDto(request.getId(), request.getUser().getId(), request.getUser().getUsername(), request.getRequestDate());
     }
 }

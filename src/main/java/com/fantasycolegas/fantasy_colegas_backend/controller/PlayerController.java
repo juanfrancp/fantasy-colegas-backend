@@ -25,9 +25,7 @@ public class PlayerController {
     }
 
     @PostMapping("/leagues/{leagueId}/players")
-    public ResponseEntity<?> createPlayer(@PathVariable Long leagueId,
-                                          @Valid @RequestBody PlayerCreateDto playerCreateDto,
-                                          @AuthenticationPrincipal CustomUserDetails currentUser) {
+    public ResponseEntity<?> createPlayer(@PathVariable Long leagueId, @Valid @RequestBody PlayerCreateDto playerCreateDto, @AuthenticationPrincipal CustomUserDetails currentUser) {
         try {
             PlayerResponseDto playerDto = playerService.createPlayer(leagueId, playerCreateDto, currentUser.getId());
             return new ResponseEntity<>(playerDto, HttpStatus.CREATED);
@@ -37,10 +35,7 @@ public class PlayerController {
     }
 
     @PatchMapping("/leagues/{leagueId}/players/{playerId}")
-    public ResponseEntity<?> updatePlayer(@PathVariable Long leagueId,
-                                          @PathVariable Long playerId,
-                                          @RequestBody PlayerUpdateDto playerUpdateDto,
-                                          @AuthenticationPrincipal CustomUserDetails currentUser) {
+    public ResponseEntity<?> updatePlayer(@PathVariable Long leagueId, @PathVariable Long playerId, @RequestBody PlayerUpdateDto playerUpdateDto, @AuthenticationPrincipal CustomUserDetails currentUser) {
         try {
             PlayerResponseDto playerDto = playerService.updatePlayer(leagueId, playerId, playerUpdateDto, currentUser.getId());
             return ResponseEntity.ok(playerDto);
@@ -50,20 +45,17 @@ public class PlayerController {
     }
 
     @DeleteMapping("/leagues/{leagueId}/players/{playerId}")
-    public ResponseEntity<?> deletePlayer(@PathVariable Long leagueId,
-                                          @PathVariable Long playerId,
-                                          @AuthenticationPrincipal CustomUserDetails currentUser) {
+    public ResponseEntity<?> deletePlayer(@PathVariable Long leagueId, @PathVariable Long playerId, @AuthenticationPrincipal CustomUserDetails currentUser) {
         try {
             playerService.deletePlayer(leagueId, playerId, currentUser.getId());
-            return ResponseEntity.noContent().build(); // <--- Respuesta 204 No Content
+            return ResponseEntity.noContent().build();
         } catch (ResponseStatusException e) {
             return ResponseEntity.status(e.getStatusCode()).body(e.getReason());
         }
     }
 
     @GetMapping("/leagues/{leagueId}/players/{playerId}")
-    public ResponseEntity<?> getPlayerById(@PathVariable Long leagueId,
-                                           @PathVariable Long playerId) {
+    public ResponseEntity<?> getPlayerById(@PathVariable Long leagueId, @PathVariable Long playerId) {
         try {
             PlayerResponseDto playerDto = playerService.getPlayerById(leagueId, playerId);
             return ResponseEntity.ok(playerDto);
@@ -73,10 +65,7 @@ public class PlayerController {
     }
 
     @PatchMapping("/leagues/{leagueId}/players/{playerId}/points")
-    public ResponseEntity<?> updatePlayerPoints(@PathVariable Long leagueId,
-                                                @PathVariable Long playerId,
-                                                @RequestBody PointsUpdateDto pointsUpdateDto,
-                                                @AuthenticationPrincipal CustomUserDetails currentUser) {
+    public ResponseEntity<?> updatePlayerPoints(@PathVariable Long leagueId, @PathVariable Long playerId, @RequestBody PointsUpdateDto pointsUpdateDto, @AuthenticationPrincipal CustomUserDetails currentUser) {
         try {
             PlayerResponseDto playerDto = playerService.updatePlayerPoints(leagueId, playerId, pointsUpdateDto, currentUser.getId());
             return ResponseEntity.ok(playerDto);

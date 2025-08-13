@@ -7,5 +7,6 @@ import java.util.List;
 
 public interface MatchRepository extends JpaRepository<Match, Long> {
     List<Match> findAllByLeagueId(Long leagueId);
+
     long countByLeagueId(Long leagueId);
 }

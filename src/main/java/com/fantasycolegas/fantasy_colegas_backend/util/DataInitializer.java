@@ -36,7 +36,6 @@ public class DataInitializer {
     @EventListener(ApplicationReadyEvent.class)
     public void initializeScoringRules() {
         if (scoringRuleRepository.count() == 0) {
-            // Reglas para jugadores de CAMPO
             scoringRuleRepository.save(createRule("golesMarcados", 5.0, PlayerTeamRole.CAMPO));
             scoringRuleRepository.save(createRule("asistencias", 3.0, PlayerTeamRole.CAMPO));
             scoringRuleRepository.save(createRule("fallosClarosDeGol", -1.0, PlayerTeamRole.CAMPO));
@@ -44,8 +43,6 @@ public class DataInitializer {
             scoringRuleRepository.save(createRule("faltasRecibidas", 0.5, PlayerTeamRole.CAMPO));
             scoringRuleRepository.save(createRule("tarjetasAmarillas", -1.0, PlayerTeamRole.CAMPO));
             scoringRuleRepository.save(createRule("tarjetasRojas", -3.0, PlayerTeamRole.CAMPO));
-
-            // Reglas para jugadores de PORTERO
             scoringRuleRepository.save(createRule("paradasComoPortero", 0.5, PlayerTeamRole.PORTERO));
             scoringRuleRepository.save(createRule("golesEncajadosComoPortero", -2.0, PlayerTeamRole.PORTERO));
             scoringRuleRepository.save(createRule("penaltisRecibidos", 2.0, PlayerTeamRole.PORTERO));

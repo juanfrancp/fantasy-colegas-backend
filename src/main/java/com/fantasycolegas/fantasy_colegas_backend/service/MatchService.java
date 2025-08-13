@@ -1,4 +1,3 @@
-// Archivo: com/fantasycolegas/fantasy_colegas_backend/service/MatchService.java
 package com.fantasycolegas.fantasy_colegas_backend.service;
 
 import com.fantasycolegas.fantasy_colegas_backend.dto.request.MatchCreateDto;
@@ -41,10 +40,8 @@ public class MatchService {
 
     @Transactional
     public MatchResponseDto createMatch(MatchCreateDto matchCreateDto) {
-        League league = leagueRepository.findById(matchCreateDto.getLeagueId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Liga no encontrada."));
+        League league = leagueRepository.findById(matchCreateDto.getLeagueId()).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Liga no encontrada."));
 
-        // Obtener el número de partidos ya creados en la liga para el nombre
         long matchCount = matchRepository.countByLeagueId(league.getId());
 
         Match newMatch = new Match();
@@ -68,11 +65,9 @@ public class MatchService {
 
     @Transactional
     public PlayerMatchStatsResponseDto updatePlayerStats(Long matchId, PlayerMatchStatsUpdateDto statsUpdateDto) {
-        Match match = matchRepository.findById(matchId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Partido no encontrado."));
+        Match match = matchRepository.findById(matchId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Partido no encontrado."));
 
-        Player player = playerRepository.findById(statsUpdateDto.getPlayerId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Jugador no encontrado."));
+        Player player = playerRepository.findById(statsUpdateDto.getPlayerId()).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Jugador no encontrado."));
 
         Optional<PlayerMatchStats> existingStats = playerMatchStatsRepository.findByMatchIdAndPlayerId(matchId, player.getId());
         PlayerMatchStats playerMatchStats = existingStats.orElseGet(PlayerMatchStats::new);
@@ -90,7 +85,6 @@ public class MatchService {
         playerMatchStats.setPenaltisRecibidos(statsUpdateDto.getPenaltisRecibidos());
         playerMatchStats.setPenaltisCometidos(statsUpdateDto.getPenaltisCometidos());
 
-        // Opcionales
         playerMatchStats.setPasesAcertados(statsUpdateDto.getPasesAcertados());
         playerMatchStats.setPasesFallados(statsUpdateDto.getPasesFallados());
         playerMatchStats.setRobosDeBalon(statsUpdateDto.getRobosDeBalon());
@@ -100,51 +94,21 @@ public class MatchService {
         playerMatchStats.setTarjetasAmarillas(statsUpdateDto.getTarjetasAmarillas());
         playerMatchStats.setTarjetasRojas(statsUpdateDto.getTarjetasRojas());
 
-        // --- LÓGICA DE CÁLCULO DE PUNTOS ---
-        // 1. Calcular los puntos de campo y portero por separado
         double calculatedFieldPoints = pointsCalculationService.calculatePointsForRole(statsUpdateDto, PlayerTeamRole.CAMPO);
         double calculatedGoalkeeperPoints = pointsCalculationService.calculatePointsForRole(statsUpdateDto, PlayerTeamRole.PORTERO);
 
-        // 2. Asignar los puntos calculados a la entidad antes de guardarla
         playerMatchStats.setTotalFieldPoints(calculatedFieldPoints);
         playerMatchStats.setTotalGoalkeeperPoints(calculatedGoalkeeperPoints);
 
-        // 3. Guardar la entidad actualizada en la base de datos
         playerMatchStatsRepository.save(playerMatchStats);
 
-        // 4. Actualizar los puntos de los usuarios
         updateUserPoints(playerMatchStats, player.getLeague().getId());
-        // --- FIN DEL CÁLCULO Y ACTUALIZACIÓN ---
 
-        return new PlayerMatchStatsResponseDto(
-                playerMatchStats.getId(),
-                playerMatchStats.getPlayer().getId(),
-                playerMatchStats.getGolesMarcados(),
-                playerMatchStats.getFallosClarosDeGol(),
-                playerMatchStats.getAsistencias(),
-                playerMatchStats.getGolesEncajadosComoPortero(),
-                playerMatchStats.getParadasComoPortero(),
-                playerMatchStats.getCesionesConcedidas(),
-                playerMatchStats.getFaltasCometidas(),
-                playerMatchStats.getFaltasRecibidas(),
-                playerMatchStats.getPenaltisRecibidos(),
-                playerMatchStats.getPenaltisCometidos(),
-                playerMatchStats.getPasesAcertados(),
-                playerMatchStats.getPasesFallados(),
-                playerMatchStats.getRobosDeBalon(),
-                playerMatchStats.getTirosCompletados(),
-                playerMatchStats.getTirosEntreLosTresPalos(),
-                playerMatchStats.getTiempoJugado(),
-                playerMatchStats.getTarjetasAmarillas(),
-                playerMatchStats.getTarjetasRojas(),
-                playerMatchStats.getTotalFieldPoints(),
-                playerMatchStats.getTotalGoalkeeperPoints()
-        );
+        return new PlayerMatchStatsResponseDto(playerMatchStats.getId(), playerMatchStats.getPlayer().getId(), playerMatchStats.getGolesMarcados(), playerMatchStats.getFallosClarosDeGol(), playerMatchStats.getAsistencias(), playerMatchStats.getGolesEncajadosComoPortero(), playerMatchStats.getParadasComoPortero(), playerMatchStats.getCesionesConcedidas(), playerMatchStats.getFaltasCometidas(), playerMatchStats.getFaltasRecibidas(), playerMatchStats.getPenaltisRecibidos(), playerMatchStats.getPenaltisCometidos(), playerMatchStats.getPasesAcertados(), playerMatchStats.getPasesFallados(), playerMatchStats.getRobosDeBalon(), playerMatchStats.getTirosCompletados(), playerMatchStats.getTirosEntreLosTresPalos(), playerMatchStats.getTiempoJugado(), playerMatchStats.getTarjetasAmarillas(), playerMatchStats.getTarjetasRojas(), playerMatchStats.getTotalFieldPoints(), playerMatchStats.getTotalGoalkeeperPoints());
     }
 
     public boolean checkIfUserIsAdminOfMatchLeague(Long matchId, Long userId) {
-        Match match = matchRepository.findById(matchId)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Partido no encontrado."));
+        Match match = matchRepository.findById(matchId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Partido no encontrado."));
         return leagueService.checkIfUserIsAdmin(match.getLeague().getId(), userId);
     }
 
@@ -162,12 +126,6 @@ public class MatchService {
                 pointsToAdd = playerMatchStats.getTotalGoalkeeperPoints();
             }
 
-            // Actualizar los puntos del usuario (asumiendo que hay un campo `totalPoints` en la entidad `User`)
-            // user.setTotalPoints(user.getTotalPoints() + pointsToAdd);
-            // userRepository.save(user); // Guarda el usuario con los puntos actualizados
-
-            // La lógica anterior es para un contador global, si quieres un contador por liga
-            // deberás modificar las entidades User y UserLeagueRoles para que lo permitan
         }
     }
 }

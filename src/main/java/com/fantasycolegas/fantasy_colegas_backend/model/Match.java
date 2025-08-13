@@ -2,6 +2,7 @@ package com.fantasycolegas.fantasy_colegas_backend.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
+
 import java.time.LocalDate;
 
 @Entity
@@ -24,6 +25,4 @@ public class Match {
 
     @Column(nullable = false)
     private LocalDate matchDate;
-
-    // Puedes añadir más campos como el resultado, si es necesario.
 }

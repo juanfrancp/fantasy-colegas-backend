@@ -44,7 +44,6 @@ public class PlayerMatchStats {
     private int tarjetasAmarillas;
     private int tarjetasRojas;
 
-    // Campos nuevos para los puntos de campo y portero
     private double totalFieldPoints;
     private double totalGoalkeeperPoints;
 
