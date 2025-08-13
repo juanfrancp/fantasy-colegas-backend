@@ -1,4 +1,3 @@
-// Archivo: LeagueService.java
 package com.fantasycolegas.fantasy_colegas_backend.service;
 
 import com.fantasycolegas.fantasy_colegas_backend.dto.request.LeagueCreateDto;
@@ -19,6 +18,17 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * @author Juan Francisco Carceles
+ * @version 1.0
+ * @since 01/08/2025
+ *
+ * Servicio principal para la gestión de ligas.
+ * <p>
+ * Este servicio contiene la lógica de negocio para crear, unirse, modificar y eliminar ligas,
+ * así como para gestionar los rosters, roles de usuario y solicitudes de unión.
+ * </p>
+ */
 @Service
 public class LeagueService {
 
@@ -30,6 +40,9 @@ public class LeagueService {
     private final RosterPlayerRepository rosterPlayerRepository;
     private PlayerMatchStatsRepository playerMatchStatsRepository;
 
+    /**
+     * Constructor del servicio que inyecta las dependencias de los repositorios.
+     */
     public LeagueService(LeagueRepository leagueRepository, UserRepository userRepository, UserLeagueRoleRepository userLeagueRoleRepository, LeagueJoinRequestRepository leagueJoinRequestRepository, PlayerRepository playerRepository, RosterPlayerRepository rosterPlayerRepository, PlayerMatchStatsRepository playerMatchStatsRepository) {
         this.leagueRepository = leagueRepository;
         this.userRepository = userRepository;
@@ -40,7 +53,15 @@ public class LeagueService {
         this.playerMatchStatsRepository = playerMatchStatsRepository;
     }
 
-
+    /**
+     * Obtiene el ranking (scoreboard) de una liga.
+     * <p>
+     * Calcula los puntos de cada usuario en la liga y los devuelve ordenados de mayor a menor.
+     * </p>
+     *
+     * @param leagueId El ID de la liga.
+     * @return Una lista de {@link UserScoreDto} con los puntos de cada usuario.
+     */
     public List<UserScoreDto> getLeagueScoreboard(Long leagueId) {
         List<Long> userIds = rosterPlayerRepository.findDistinctUserIdsByLeagueId(leagueId);
 
@@ -55,11 +76,25 @@ public class LeagueService {
         return scoreboard;
     }
 
+    /**
+     * Obtiene los puntos totales de un usuario en una liga específica.
+     *
+     * @param leagueId El ID de la liga.
+     * @param userId El ID del usuario.
+     * @return Un {@link UserScoreDto} con el ID del usuario y sus puntos totales.
+     */
     public UserScoreDto getUserPointsInLeague(Long leagueId, Long userId) {
         double totalPoints = calculateUserPoints(leagueId, userId);
         return new UserScoreDto(userId, totalPoints);
     }
 
+    /**
+     * Calcula los puntos totales de un usuario sumando los puntos de cada jugador en su roster.
+     *
+     * @param leagueId El ID de la liga.
+     * @param userId El ID del usuario.
+     * @return Los puntos totales del usuario.
+     */
     private double calculateUserPoints(Long leagueId, Long userId) {
         List<RosterPlayer> rosterPlayers = rosterPlayerRepository.findByUserIdAndLeagueId(userId, leagueId);
 
@@ -77,6 +112,19 @@ public class LeagueService {
         return totalUserPoints;
     }
 
+    /**
+     * Obtiene el roster de un equipo (usuario) en una liga.
+     * <p>
+     * Verifica que el usuario que realiza la petición sea miembro de la liga.
+     * </p>
+     *
+     * @param leagueId El ID de la liga.
+     * @param teamId El ID del usuario cuyo roster se desea obtener.
+     * @param requestingUsername El nombre de usuario que realiza la petición.
+     * @return Un {@link RosterResponseDto} con los detalles del roster.
+     * @throws IllegalArgumentException Si la liga, el usuario o el roster no se encuentran.
+     * @throws AccessDeniedException Si el usuario que solicita no es miembro de la liga.
+     */
     public RosterResponseDto getRosterByTeamId(Long leagueId, Long teamId, String requestingUsername) {
         League league = leagueRepository.findById(leagueId).orElseThrow(() -> new IllegalArgumentException("League not found with ID: " + leagueId));
         User requestingUser = userRepository.findByUsername(requestingUsername).orElseThrow(() -> new IllegalArgumentException("Authenticated user not found."));
@@ -103,6 +151,17 @@ public class LeagueService {
         return rosterResponseDto;
     }
 
+    /**
+     * Actualiza el tamaño del equipo de una liga.
+     * <p>
+     * Solo los administradores de la liga pueden realizar esta acción.
+     * </p>
+     *
+     * @param leagueId El ID de la liga.
+     * @param teamSizeUpdateDto DTO con el nuevo tamaño del equipo.
+     * @param userId El ID del usuario que realiza la petición.
+     * @return Un {@link LeagueResponseDto} con la información actualizada de la liga.
+     */
     @Transactional
     public LeagueResponseDto updateLeagueTeamSize(Long leagueId, LeagueTeamSizeUpdateDto teamSizeUpdateDto, Long userId) {
         if (!checkIfUserIsAdmin(leagueId, userId)) {
@@ -117,6 +176,17 @@ public class LeagueService {
         return mapToLeagueResponseDto(league);
     }
 
+    /**
+     * Cambia el rol de un usuario en una liga.
+     * <p>
+     * Valida que no se pueda degradar al único administrador de la liga.
+     * </p>
+     *
+     * @param leagueId El ID de la liga.
+     * @param adminUserId El ID del usuario administrador que realiza la petición.
+     * @param targetUserId El ID del usuario cuyo rol se va a cambiar.
+     * @param newRole El nuevo rol a asignar.
+     */
     @Transactional
     public void changeUserRole(Long leagueId, Long adminUserId, Long targetUserId, LeagueRole newRole) {
         if (adminUserId.equals(targetUserId)) {
@@ -136,6 +206,16 @@ public class LeagueService {
         userLeagueRoleRepository.save(targetUserRole);
     }
 
+    /**
+     * Crea una nueva liga y asigna al usuario que la crea como administrador.
+     * <p>
+     * También genera un código de unión y un roster aleatorio para el usuario.
+     * </p>
+     *
+     * @param leagueCreateDto DTO con los datos para la creación de la liga.
+     * @param userId El ID del usuario que crea la liga.
+     * @return Un {@link LeagueResponseDto} con la información de la liga creada.
+     */
     @Transactional
     public LeagueResponseDto createLeague(LeagueCreateDto leagueCreateDto, Long userId) {
         User creator = userRepository.findById(userId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
@@ -168,6 +248,13 @@ public class LeagueService {
         return mapToLeagueResponseDto(savedLeague);
     }
 
+    /**
+     * Permite a un usuario unirse a una liga pública mediante un código de unión.
+     *
+     * @param joinCode El código de unión de la liga.
+     * @param userId El ID del usuario que se quiere unir.
+     * @return Un {@link LeagueResponseDto} con la información de la liga a la que se ha unido.
+     */
     @Transactional
     public LeagueResponseDto joinLeague(String joinCode, Long userId) {
         League league = leagueRepository.findByJoinCode(joinCode).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Código de invitación inválido o la liga no existe"));
@@ -190,6 +277,15 @@ public class LeagueService {
         return mapToLeagueResponseDto(league);
     }
 
+    /**
+     * Crea un roster aleatorio para un usuario en una liga específica.
+     * <p>
+     * Selecciona jugadores de la liga de forma aleatoria para formar un equipo.
+     * </p>
+     *
+     * @param leagueId El ID de la liga.
+     * @param userId El ID del usuario.
+     */
     @Transactional
     public void createRandomRosterForUser(Long leagueId, Long userId) {
         League league = leagueRepository.findById(leagueId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Liga no encontrada."));
@@ -237,6 +333,12 @@ public class LeagueService {
         rosterPlayerRepository.saveAll(roster);
     }
 
+    /**
+     * Envía una solicitud de unión a una liga privada.
+     *
+     * @param leagueId El ID de la liga.
+     * @param userId El ID del usuario que solicita unirse.
+     */
     @Transactional
     public void sendJoinRequest(Long leagueId, Long userId) {
         League league = leagueRepository.findById(leagueId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Liga no encontrada"));
@@ -263,6 +365,12 @@ public class LeagueService {
         leagueJoinRequestRepository.save(request);
     }
 
+    /**
+     * Obtiene todas las solicitudes de unión pendientes para una liga específica.
+     *
+     * @param leagueId El ID de la liga.
+     * @return Una lista de {@link LeagueJoinRequest} pendientes.
+     */
     @Transactional
     public List<LeagueJoinRequest> getPendingJoinRequests(Long leagueId) {
         League league = leagueRepository.findById(leagueId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Liga no encontrada"));
@@ -270,6 +378,14 @@ public class LeagueService {
         return leagueJoinRequestRepository.findByLeagueAndStatus(league, RequestStatus.PENDING);
     }
 
+    /**
+     * Acepta una solicitud de unión a una liga.
+     * <p>
+     * Cambia el estado de la solicitud a ACEPTADA y añade al usuario a la liga como PARTICIPANT.
+     * </p>
+     *
+     * @param requestId El ID de la solicitud.
+     */
     @Transactional
     public void acceptJoinRequest(Long requestId) {
         LeagueJoinRequest request = leagueJoinRequestRepository.findById(requestId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Solicitud no encontrada"));
@@ -284,6 +400,14 @@ public class LeagueService {
         userLeagueRoleRepository.save(participantRole);
     }
 
+    /**
+     * Rechaza una solicitud de unión a una liga.
+     * <p>
+     * La solicitud se elimina de la base de datos.
+     * </p>
+     *
+     * @param requestId El ID de la solicitud.
+     */
     @Transactional
     public void rejectJoinRequest(Long requestId) {
         LeagueJoinRequest request = leagueJoinRequestRepository.findById(requestId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Solicitud no encontrada"));
@@ -291,6 +415,16 @@ public class LeagueService {
         leagueJoinRequestRepository.delete(request);
     }
 
+    /**
+     * Obtiene una liga por su ID.
+     * <p>
+     * Valida que el usuario que realiza la petición sea miembro de la liga.
+     * </p>
+     *
+     * @param id El ID de la liga.
+     * @param userId El ID del usuario que realiza la petición.
+     * @return Un {@link LeagueResponseDto} con la información de la liga.
+     */
     @Transactional
     public LeagueResponseDto getLeagueById(Long id, Long userId) {
         League league = leagueRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Liga no encontrada"));
@@ -302,6 +436,13 @@ public class LeagueService {
         return mapToLeagueResponseDto(league);
     }
 
+    /**
+     * Actualiza los datos de una liga.
+     *
+     * @param id El ID de la liga a actualizar.
+     * @param leagueCreateDto DTO con los datos a actualizar.
+     * @return Un {@link LeagueResponseDto} con la información actualizada de la liga.
+     */
     @Transactional
     public LeagueResponseDto updateLeague(Long id, LeagueCreateDto leagueCreateDto) {
         League existingLeague = leagueRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Liga no encontrada"));
@@ -317,6 +458,15 @@ public class LeagueService {
         return mapToLeagueResponseDto(updatedLeague);
     }
 
+    /**
+     * Elimina una liga por su ID.
+     * <p>
+     * Solo los administradores pueden eliminar la liga.
+     * </p>
+     *
+     * @param leagueId El ID de la liga a eliminar.
+     * @param userId El ID del usuario que realiza la petición.
+     */
     @Transactional
     public void deleteLeague(Long leagueId, Long userId) {
         if (!checkIfUserIsAdmin(leagueId, userId)) {
@@ -337,6 +487,15 @@ public class LeagueService {
         leagueRepository.delete(league);
     }
 
+    /**
+     * Permite a un usuario abandonar una liga.
+     * <p>
+     * Valida que el usuario no sea el único administrador de la liga.
+     * </p>
+     *
+     * @param leagueId El ID de la liga.
+     * @param userId El ID del usuario que abandona la liga.
+     */
     @Transactional
     public void leaveLeague(Long leagueId, Long userId) {
         UserLeagueRole userRole = userLeagueRoleRepository.findByLeagueIdAndUserId(leagueId, userId).orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "El usuario no es miembro de esta liga."));
@@ -349,6 +508,16 @@ public class LeagueService {
         userLeagueRoleRepository.delete(userRole);
     }
 
+    /**
+     * Expulsa a un usuario de una liga.
+     * <p>
+     * Solo un administrador puede expulsar a otro usuario.
+     * </p>
+     *
+     * @param leagueId El ID de la liga.
+     * @param adminUserId El ID del usuario administrador que realiza la expulsión.
+     * @param targetUserId El ID del usuario a expulsar.
+     */
     @Transactional
     public void expelUser(Long leagueId, Long adminUserId, Long targetUserId) {
         if (adminUserId.equals(targetUserId)) {
@@ -365,16 +534,36 @@ public class LeagueService {
         userLeagueRoleRepository.delete(userRole);
     }
 
+    /**
+     * Verifica si un usuario es administrador de una liga.
+     *
+     * @param leagueId El ID de la liga.
+     * @param userId El ID del usuario.
+     * @return {@code true} si el usuario es administrador, {@code false} en caso contrario.
+     */
     @Transactional
     public boolean checkIfUserIsAdmin(Long leagueId, Long userId) {
         return userLeagueRoleRepository.findAllByLeagueId(leagueId).stream().anyMatch(ulr -> ulr.getUser().getId().equals(userId) && ulr.getRole() == LeagueRole.ADMIN);
     }
 
+    /**
+     * Verifica si un usuario es miembro (participante o administrador) de una liga.
+     *
+     * @param leagueId El ID de la liga.
+     * @param userId El ID del usuario.
+     * @return {@code true} si el usuario es miembro, {@code false} en caso contrario.
+     */
     @Transactional
     public boolean checkIfUserIsMember(Long leagueId, Long userId) {
         return userLeagueRoleRepository.existsByLeagueIdAndUserId(leagueId, userId);
     }
 
+    /**
+     * Mapea una entidad {@link League} a un DTO de respuesta.
+     *
+     * @param league La entidad {@link League}.
+     * @return El DTO de respuesta {@link LeagueResponseDto}.
+     */
     private LeagueResponseDto mapToLeagueResponseDto(League league) {
         Set<UserLeagueRole> userRoles = new HashSet<>(league.getUserRoles());
 
@@ -387,14 +576,33 @@ public class LeagueService {
         return new LeagueResponseDto(league.getId(), league.getName(), league.getDescription(), league.getImage(), league.isPrivate(), league.getJoinCode(), participantsDto.size(), adminsDto, participantsDto, league.getTeamSize(), players);
     }
 
+    /**
+     * Mapea una entidad {@link User} a un DTO de respuesta.
+     *
+     * @param user La entidad {@link User}.
+     * @return El DTO de respuesta {@link UserResponseDto}.
+     */
     private UserResponseDto mapToUserResponseDto(User user) {
         return new UserResponseDto(user.getId(), user.getUsername());
     }
 
+    /**
+     * Mapea una entidad {@link Player} a un DTO de respuesta.
+     *
+     * @param player La entidad {@link Player}.
+     * @return El DTO de respuesta {@link PlayerResponseDto}.
+     */
     private PlayerResponseDto mapToPlayerResponseDto(Player player) {
         return new PlayerResponseDto(player.getId(), player.getName(), player.getImage(), player.getTotalPoints());
     }
 
+    /**
+     * Verifica si un usuario es un participante (miembro) de una liga.
+     *
+     * @param leagueId El ID de la liga.
+     * @param userId El ID del usuario.
+     * @return {@code true} si el usuario es participante, {@code false} en caso contrario.
+     */
     public boolean isUserParticipant(Long leagueId, Long userId) {
         return userLeagueRoleRepository.existsByLeagueIdAndUserId(leagueId, userId);
     }

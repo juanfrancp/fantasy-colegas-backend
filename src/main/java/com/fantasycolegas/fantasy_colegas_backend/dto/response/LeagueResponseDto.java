@@ -6,6 +6,18 @@ import lombok.NoArgsConstructor;
 
 import java.util.List;
 
+/**
+ * @author Juan Francisco Carceles
+ * @version 1.0
+ * @since 01/08/2025
+ * <p>
+ * DTO (Data Transfer Object) para la respuesta de los datos de una liga.
+ * <p>
+ * Este objeto se utiliza para transferir una representación completa de una liga,
+ * incluyendo sus detalles básicos, sus administradores, participantes, jugadores
+ * y otras configuraciones.
+ * </p>
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

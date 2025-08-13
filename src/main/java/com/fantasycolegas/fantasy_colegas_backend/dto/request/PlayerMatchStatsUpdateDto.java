@@ -3,6 +3,17 @@ package com.fantasycolegas.fantasy_colegas_backend.dto.request;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
+/**
+ * @author Juan Francisco Carceles
+ * @version 1.0
+ * @since 01/08/2025
+ * <p>
+ * DTO (Data Transfer Object) para la actualización de las estadísticas de un jugador en un partido.
+ * <p>
+ * Contiene todas las métricas que se pueden registrar para un jugador durante un partido
+ * de fantasía. Todos los campos de estadísticas tienen un valor por defecto de 0.
+ * </p>
+ */
 @Data
 public class PlayerMatchStatsUpdateDto {
 

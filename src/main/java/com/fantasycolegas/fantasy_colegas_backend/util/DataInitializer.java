@@ -9,17 +9,41 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
+/**
+ * @author Juan Francisco Carceles
+ * @version 1.0
+ * @since 01/08/2025
+ * <p>
+ * Clase de inicialización de datos para la aplicación.
+ * <p>
+ * Se ejecuta al arrancar la aplicación y se encarga de asegurar que existan
+ * ciertos datos iniciales, como un jugador "placeholder" y las reglas de puntuación
+ * por defecto, si aún no se han creado.
+ * </p>
+ */
 @Component
 public class DataInitializer {
 
     private final PlayerRepository playerRepository;
     private final ScoringRuleRepository scoringRuleRepository;
 
+    /**
+     * Constructor que inyecta las dependencias de los repositorios.
+     *
+     * @param playerRepository      Repositorio de jugadores.
+     * @param scoringRuleRepository Repositorio de reglas de puntuación.
+     */
     public DataInitializer(PlayerRepository playerRepository, ScoringRuleRepository scoringRuleRepository) {
         this.playerRepository = playerRepository;
         this.scoringRuleRepository = scoringRuleRepository;
     }
 
+    /**
+     * Inicializa un jugador "placeholder" al arrancar la aplicación, si no existe.
+     * <p>
+     * Este jugador se utiliza para llenar posiciones vacías en los rosters de los equipos.
+     * </p>
+     */
     @EventListener(ApplicationReadyEvent.class)
     public void initializePlaceholderPlayer() {
         if (playerRepository.findByIsPlaceholderTrue().isEmpty()) {
@@ -33,6 +57,13 @@ public class DataInitializer {
         }
     }
 
+    /**
+     * Inicializa las reglas de puntuación por defecto al arrancar la aplicación.
+     * <p>
+     * Crea un conjunto de reglas de puntuación para los roles de jugador de campo
+     * y portero, si la base de datos no contiene ninguna regla.
+     * </p>
+     */
     @EventListener(ApplicationReadyEvent.class)
     public void initializeScoringRules() {
         if (scoringRuleRepository.count() == 0) {
@@ -54,6 +85,14 @@ public class DataInitializer {
         }
     }
 
+    /**
+     * Método auxiliar para crear una regla de puntuación.
+     *
+     * @param statName       El nombre de la estadística.
+     * @param pointsPerUnit  Los puntos por unidad de la estadística.
+     * @param playerTeamRole El rol al que se aplica la regla.
+     * @return Una nueva instancia de {@link ScoringRule}.
+     */
     private ScoringRule createRule(String statName, double pointsPerUnit, PlayerTeamRole playerTeamRole) {
         ScoringRule rule = new ScoringRule();
         rule.setStatName(statName);

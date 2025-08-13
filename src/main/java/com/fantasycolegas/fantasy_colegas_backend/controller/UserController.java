@@ -17,6 +17,18 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Optional;
 
+/**
+ * @author Juan Francisco Carceles
+ * @version 1.0
+ * @since 01/08/2025
+ * <p>
+ * Controlador REST para la gestión de usuarios.
+ * <p>
+ * Proporciona endpoints para consultar, actualizar y eliminar usuarios.
+ * Los endpoints están protegidos para asegurar que solo el usuario autenticado
+ * pueda modificar su propia información.
+ * </p>
+ */
 @RestController
 @RequestMapping("/api/users")
 public class UserController {
@@ -27,6 +39,15 @@ public class UserController {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
+    /**
+     * Obtiene los detalles de un usuario por su ID.
+     * <p>
+     * Requiere que el usuario esté autenticado.
+     * </p>
+     *
+     * @param id El ID del usuario a buscar.
+     * @return Una {@link ResponseEntity} con el objeto {@link User} si se encuentra, o un 404 si no.
+     */
     @GetMapping("/{id}")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<User> getUserById(@PathVariable Long id) {
@@ -34,6 +55,16 @@ public class UserController {
         return user.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    /**
+     * Actualiza la información de un usuario.
+     * <p>
+     * Solo permite al usuario autenticado actualizar sus propios datos.
+     * </p>
+     *
+     * @param id            El ID del usuario a actualizar.
+     * @param userUpdateDto DTO con los datos del usuario a actualizar.
+     * @return Una {@link ResponseEntity} con el objeto {@link User} actualizado.
+     */
     @PutMapping("/{id}")
     @PreAuthorize("isAuthenticated() and #id == principal.id")
     public ResponseEntity<User> updateUser(@PathVariable Long id, @Valid @RequestBody UserUpdateDto userUpdateDto) {
@@ -59,6 +90,18 @@ public class UserController {
         return ResponseEntity.ok(user);
     }
 
+    /**
+     * Actualiza la contraseña de un usuario.
+     * <p>
+     * Requiere la contraseña antigua para verificar y solo permite al usuario autenticado
+     * cambiar su propia contraseña.
+     * </p>
+     *
+     * @param id                El ID del usuario.
+     * @param passwordUpdateDto DTO con la contraseña antigua y la nueva.
+     * @param currentUser       El usuario autenticado.
+     * @return Una {@link ResponseEntity} con el objeto {@link User} actualizado.
+     */
     @PreAuthorize("isAuthenticated() and #id == principal.id")
     @PutMapping("/{id}/password")
     public ResponseEntity<User> updatePassword(@PathVariable Long id, @Valid @RequestBody PasswordUpdateDto passwordUpdateDto, @AuthenticationPrincipal CustomUserDetails currentUser) {
@@ -73,6 +116,15 @@ public class UserController {
         return ResponseEntity.ok(updatedUser);
     }
 
+    /**
+     * Elimina un usuario.
+     * <p>
+     * Solo permite al usuario autenticado eliminar su propia cuenta.
+     * </p>
+     *
+     * @param id El ID del usuario a eliminar.
+     * @return Una {@link ResponseEntity} sin contenido si la eliminación es exitosa.
+     */
     @PreAuthorize("isAuthenticated() and #id == principal.id")
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {

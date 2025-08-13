@@ -5,6 +5,17 @@ import lombok.Data;
 
 import java.time.LocalDate;
 
+/**
+ * @author Juan Francisco Carceles
+ * @version 1.0
+ * @since 01/08/2025
+ * <p>
+ * Entidad JPA que representa un partido.
+ * <p>
+ * Un partido está asociado a una liga y contiene información como su nombre,
+ * descripción y la fecha en que se jugó.
+ * </p>
+ */
 @Entity
 @Data
 @Table(name = "matches")

@@ -7,6 +7,17 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 
+/**
+ * @author Juan Francisco Carceles
+ * @version 1.0
+ * @since 01/08/2025
+ * <p>
+ * Entidad JPA que representa a un usuario de la aplicación.
+ * <p>
+ * Un usuario tiene un nombre de usuario, un correo electrónico y una contraseña.
+ * También está asociado con los roles que tiene en las diferentes ligas.
+ * </p>
+ */
 @Entity
 @Table(name = "users")
 @Data

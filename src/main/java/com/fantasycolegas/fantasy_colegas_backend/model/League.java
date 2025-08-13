@@ -9,6 +9,19 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 
+/**
+ * @author Juan Francisco Carceles
+ * @version 1.0
+ * @since 01/08/2025
+ *
+ * Entidad JPA que representa una liga en la aplicación.
+ * <p>
+ * Una liga agrupa a varios usuarios (participantes) y jugadores, y define
+ * las reglas básicas del juego, como si es privada o no, el código de unión,
+ * el número de jugadores y el tamaño del equipo.
+ * </p>
+ */
+
 @Entity
 @Table(name = "leagues")
 @Data

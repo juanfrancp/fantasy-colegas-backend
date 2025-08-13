@@ -9,6 +9,17 @@ import lombok.NoArgsConstructor;
 import java.io.Serializable;
 import java.util.Objects;
 
+/**
+ * @author Juan Francisco Carceles
+ * @version 1.0
+ * @since 01/08/2025
+ * <p>
+ * Clase para la clave primaria compuesta de la entidad {@link UserLeagueRole}.
+ * <p>
+ * Esta clave se utiliza para identificar de forma única la relación entre un usuario y una liga.
+ * Es una clase embebible que contiene los IDs del usuario y de la liga.
+ * </p>
+ */
 @Embeddable
 @Data
 @NoArgsConstructor

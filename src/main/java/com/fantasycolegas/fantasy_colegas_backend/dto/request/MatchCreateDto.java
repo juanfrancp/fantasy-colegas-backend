@@ -5,6 +5,17 @@ import lombok.Data;
 
 import java.time.LocalDate;
 
+/**
+ * @author Juan Francisco Carceles
+ * @version 1.0
+ * @since 01/08/2025
+ * <p>
+ * DTO (Data Transfer Object) para la solicitud de creación de un nuevo partido.
+ * <p>
+ * Contiene los datos necesarios para programar un partido en una liga específica,
+ * como el ID de la liga, la fecha y una descripción opcional.
+ * </p>
+ */
 @Data
 public class MatchCreateDto {
 

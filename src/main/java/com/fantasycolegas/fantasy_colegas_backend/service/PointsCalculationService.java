@@ -8,15 +8,43 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
+/**
+ * @author Juan Francisco Carceles
+ * @version 1.0
+ * @since 01/08/2025
+ * <p>
+ * Servicio para el cálculo de los puntos de los jugadores en un partido.
+ * <p>
+ * Este servicio se encarga de aplicar las reglas de puntuación definidas
+ * para cada rol de jugador (portero o jugador de campo) a las estadísticas
+ * de un partido para calcular los puntos totales.
+ * </p>
+ */
 @Service
 public class PointsCalculationService {
 
     private final ScoringRuleRepository scoringRuleRepository;
 
+    /**
+     * Constructor del servicio que inyecta el repositorio de reglas de puntuación.
+     *
+     * @param scoringRuleRepository El repositorio de reglas de puntuación.
+     */
     public PointsCalculationService(ScoringRuleRepository scoringRuleRepository) {
         this.scoringRuleRepository = scoringRuleRepository;
     }
 
+    /**
+     * Calcula los puntos de un jugador para un partido basándose en su rol.
+     * <p>
+     * Obtiene las reglas de puntuación para un rol específico y las aplica
+     * a cada estadística del jugador para obtener una puntuación total.
+     * </p>
+     *
+     * @param statsDto   DTO con las estadísticas del jugador para el partido.
+     * @param playerRole El rol del jugador (ej. {@link PlayerTeamRole#CAMPO} o {@link PlayerTeamRole#PORTERO}).
+     * @return Los puntos totales calculados para el jugador.
+     */
     public double calculatePointsForRole(PlayerMatchStatsUpdateDto statsDto, PlayerTeamRole playerRole) {
         List<ScoringRule> rules = scoringRuleRepository.findAllByRole(playerRole);
         double totalPoints = 0.0;
@@ -29,6 +57,13 @@ public class PointsCalculationService {
         return totalPoints;
     }
 
+    /**
+     * Método auxiliar para obtener el valor de una estadística del DTO.
+     *
+     * @param statsDto DTO con las estadísticas del jugador.
+     * @param statName El nombre de la estadística.
+     * @return El valor de la estadística o 0.0 si no se encuentra.
+     */
     private double getStatValue(PlayerMatchStatsUpdateDto statsDto, String statName) {
         switch (statName) {
             case "golesMarcados":

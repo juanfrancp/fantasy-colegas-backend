@@ -15,6 +15,17 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * @author Juan Francisco Carceles
+ * @version 1.0
+ * @since 01/08/2025
+ * <p>
+ * Servicio para la gestión de partidos y estadísticas de jugadores.
+ * <p>
+ * Contiene la lógica de negocio para crear partidos, actualizar las estadísticas
+ * de los jugadores en un partido y recalcular los puntos de los usuarios.
+ * </p>
+ */
 @Service
 public class MatchService {
 
@@ -27,6 +38,9 @@ public class MatchService {
     private final RosterPlayerRepository rosterPlayerRepository;
     private final UserRepository userRepository;
 
+    /**
+     * Constructor del servicio que inyecta las dependencias de los repositorios.
+     */
     public MatchService(MatchRepository matchRepository, LeagueRepository leagueRepository, PlayerRepository playerRepository, PlayerMatchStatsRepository playerMatchStatsRepository, LeagueService leagueService, PointsCalculationService pointsCalculationService, RosterPlayerRepository rosterPlayerRepository, UserRepository userRepository) {
         this.matchRepository = matchRepository;
         this.leagueRepository = leagueRepository;
@@ -38,6 +52,16 @@ public class MatchService {
         this.userRepository = userRepository;
     }
 
+    /**
+     * Crea un nuevo partido en una liga específica.
+     * <p>
+     * El nombre del partido se genera automáticamente como "Partido jornada X",
+     * donde X es el número de partidos existentes en la liga + 1.
+     * </p>
+     *
+     * @param matchCreateDto DTO con los datos para la creación del partido.
+     * @return Un {@link MatchResponseDto} con los detalles del partido creado.
+     */
     @Transactional
     public MatchResponseDto createMatch(MatchCreateDto matchCreateDto) {
         League league = leagueRepository.findById(matchCreateDto.getLeagueId()).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Liga no encontrada."));
@@ -63,6 +87,17 @@ public class MatchService {
         return responseDto;
     }
 
+    /**
+     * Actualiza las estadísticas de un jugador en un partido específico.
+     * <p>
+     * Si las estadísticas ya existen, se actualizan; de lo contrario, se crean nuevas.
+     * También recalcula los puntos del jugador y actualiza los puntos del usuario en la liga.
+     * </p>
+     *
+     * @param matchId        El ID del partido.
+     * @param statsUpdateDto DTO con los datos de las estadísticas a actualizar.
+     * @return Un {@link PlayerMatchStatsResponseDto} con los datos de las estadísticas actualizadas.
+     */
     @Transactional
     public PlayerMatchStatsResponseDto updatePlayerStats(Long matchId, PlayerMatchStatsUpdateDto statsUpdateDto) {
         Match match = matchRepository.findById(matchId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Partido no encontrado."));
@@ -107,11 +142,27 @@ public class MatchService {
         return new PlayerMatchStatsResponseDto(playerMatchStats.getId(), playerMatchStats.getPlayer().getId(), playerMatchStats.getGolesMarcados(), playerMatchStats.getFallosClarosDeGol(), playerMatchStats.getAsistencias(), playerMatchStats.getGolesEncajadosComoPortero(), playerMatchStats.getParadasComoPortero(), playerMatchStats.getCesionesConcedidas(), playerMatchStats.getFaltasCometidas(), playerMatchStats.getFaltasRecibidas(), playerMatchStats.getPenaltisRecibidos(), playerMatchStats.getPenaltisCometidos(), playerMatchStats.getPasesAcertados(), playerMatchStats.getPasesFallados(), playerMatchStats.getRobosDeBalon(), playerMatchStats.getTirosCompletados(), playerMatchStats.getTirosEntreLosTresPalos(), playerMatchStats.getTiempoJugado(), playerMatchStats.getTarjetasAmarillas(), playerMatchStats.getTarjetasRojas(), playerMatchStats.getTotalFieldPoints(), playerMatchStats.getTotalGoalkeeperPoints());
     }
 
+    /**
+     * Verifica si un usuario es administrador de la liga a la que pertenece un partido.
+     *
+     * @param matchId El ID del partido.
+     * @param userId  El ID del usuario.
+     * @return {@code true} si el usuario es administrador, {@code false} en caso contrario.
+     */
     public boolean checkIfUserIsAdminOfMatchLeague(Long matchId, Long userId) {
         Match match = matchRepository.findById(matchId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Partido no encontrado."));
         return leagueService.checkIfUserIsAdmin(match.getLeague().getId(), userId);
     }
 
+    /**
+     * Actualiza los puntos de los usuarios cuyos rosters contienen al jugador.
+     * <p>
+     * Recalcula los puntos totales del jugador y los suma a los usuarios que lo tienen en su equipo.
+     * </p>
+     *
+     * @param playerMatchStats Las estadísticas del jugador en el partido.
+     * @param leagueId         El ID de la liga.
+     */
     @Transactional
     private void updateUserPoints(PlayerMatchStats playerMatchStats, Long leagueId) {
         List<RosterPlayer> rosterPlayers = rosterPlayerRepository.findByUserIdAndLeagueId(playerMatchStats.getPlayer().getId(), leagueId);

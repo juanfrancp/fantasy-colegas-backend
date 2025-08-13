@@ -6,6 +6,18 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
+/**
+ * @author Juan Francisco Carceles
+ * @version 1.0
+ * @since 01/08/2025
+ * <p>
+ * DTO (Data Transfer Object) para la respuesta de una solicitud para unirse a una liga.
+ * <p>
+ * Este objeto se utiliza para transferir los detalles de una solicitud de unión,
+ * incluyendo el ID de la solicitud, el ID del usuario, su nombre de usuario
+ * y la fecha de la solicitud.
+ * </p>
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

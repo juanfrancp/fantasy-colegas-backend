@@ -14,6 +14,17 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
+/**
+ * @author Juan Francisco Carceles
+ * @version 1.0
+ * @since 01/08/2025
+ * <p>
+ * Controlador REST para la gestión de jugadores.
+ * <p>
+ * Proporciona endpoints para crear, actualizar, eliminar y consultar información
+ * sobre jugadores en una liga específica.
+ * </p>
+ */
 @RestController
 @RequestMapping("/api")
 public class PlayerController {
@@ -24,6 +35,17 @@ public class PlayerController {
         this.playerService = playerService;
     }
 
+    /**
+     * Crea un nuevo jugador en una liga.
+     * <p>
+     * Este endpoint requiere que el usuario autenticado sea un administrador de la liga.
+     * </p>
+     *
+     * @param leagueId        El ID de la liga donde se creará el jugador.
+     * @param playerCreateDto DTO con los datos del nuevo jugador.
+     * @param currentUser     El usuario autenticado que realiza la petición.
+     * @return Una {@link ResponseEntity} con el {@link PlayerResponseDto} del jugador creado.
+     */
     @PostMapping("/leagues/{leagueId}/players")
     public ResponseEntity<?> createPlayer(@PathVariable Long leagueId, @Valid @RequestBody PlayerCreateDto playerCreateDto, @AuthenticationPrincipal CustomUserDetails currentUser) {
         try {
@@ -34,6 +56,18 @@ public class PlayerController {
         }
     }
 
+    /**
+     * Actualiza la información de un jugador existente.
+     * <p>
+     * Este endpoint requiere que el usuario autenticado sea un administrador de la liga.
+     * </p>
+     *
+     * @param leagueId        El ID de la liga a la que pertenece el jugador.
+     * @param playerId        El ID del jugador a actualizar.
+     * @param playerUpdateDto DTO con los datos a actualizar del jugador.
+     * @param currentUser     El usuario autenticado que realiza la petición.
+     * @return Una {@link ResponseEntity} con el {@link PlayerResponseDto} del jugador actualizado.
+     */
     @PatchMapping("/leagues/{leagueId}/players/{playerId}")
     public ResponseEntity<?> updatePlayer(@PathVariable Long leagueId, @PathVariable Long playerId, @RequestBody PlayerUpdateDto playerUpdateDto, @AuthenticationPrincipal CustomUserDetails currentUser) {
         try {
@@ -44,6 +78,17 @@ public class PlayerController {
         }
     }
 
+    /**
+     * Elimina un jugador de una liga.
+     * <p>
+     * Este endpoint requiere que el usuario autenticado sea un administrador de la liga.
+     * </p>
+     *
+     * @param leagueId    El ID de la liga a la que pertenece el jugador.
+     * @param playerId    El ID del jugador a eliminar.
+     * @param currentUser El usuario autenticado que realiza la petición.
+     * @return Una {@link ResponseEntity} sin contenido si la eliminación es exitosa.
+     */
     @DeleteMapping("/leagues/{leagueId}/players/{playerId}")
     public ResponseEntity<?> deletePlayer(@PathVariable Long leagueId, @PathVariable Long playerId, @AuthenticationPrincipal CustomUserDetails currentUser) {
         try {
@@ -54,6 +99,13 @@ public class PlayerController {
         }
     }
 
+    /**
+     * Obtiene los detalles de un jugador por su ID.
+     *
+     * @param leagueId El ID de la liga a la que pertenece el jugador.
+     * @param playerId El ID del jugador a consultar.
+     * @return Una {@link ResponseEntity} con el {@link PlayerResponseDto} del jugador.
+     */
     @GetMapping("/leagues/{leagueId}/players/{playerId}")
     public ResponseEntity<?> getPlayerById(@PathVariable Long leagueId, @PathVariable Long playerId) {
         try {
@@ -64,6 +116,18 @@ public class PlayerController {
         }
     }
 
+    /**
+     * Actualiza los puntos de un jugador.
+     * <p>
+     * Este endpoint requiere que el usuario autenticado sea un administrador de la liga.
+     * </p>
+     *
+     * @param leagueId        El ID de la liga.
+     * @param playerId        El ID del jugador.
+     * @param pointsUpdateDto DTO con los puntos a actualizar.
+     * @param currentUser     El usuario autenticado.
+     * @return Una {@link ResponseEntity} con el {@link PlayerResponseDto} del jugador con los puntos actualizados.
+     */
     @PatchMapping("/leagues/{leagueId}/players/{playerId}/points")
     public ResponseEntity<?> updatePlayerPoints(@PathVariable Long leagueId, @PathVariable Long playerId, @RequestBody PointsUpdateDto pointsUpdateDto, @AuthenticationPrincipal CustomUserDetails currentUser) {
         try {

@@ -7,7 +7,18 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
-
+/**
+ * @author Juan Francisco Carceles
+ * @version 1.0
+ * @since 01/08/2025
+ * <p>
+ * Entidad JPA que representa una solicitud de unión a una liga.
+ * <p>
+ * Almacena la información de una petición de un usuario para unirse a una liga privada,
+ * incluyendo el usuario que la envía, la liga a la que se desea unir, la fecha de la solicitud
+ * y el estado actual de la misma.
+ * </p>
+ */
 @Entity
 @Table(name = "league_join_requests")
 @Data

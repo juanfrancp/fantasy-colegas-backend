@@ -21,6 +21,17 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+/**
+ * @author Juan Francisco Carceles
+ * @version 1.0
+ * @since 01/08/2025
+ * <p>
+ * Servicio para la gestión de equipos (rosters) de los usuarios en una liga.
+ * <p>
+ * Contiene la lógica de negocio para crear, ver y modificar los equipos
+ * de los participantes, con validaciones de tamaño y roles de los jugadores.
+ * </p>
+ */
 @Service
 public class RosterService {
 
@@ -30,6 +41,9 @@ public class RosterService {
     private final PlayerRepository playerRepository;
     private final UserRepository userRepository;
 
+    /**
+     * Constructor del servicio que inyecta las dependencias de los repositorios y otros servicios.
+     */
     public RosterService(RosterPlayerRepository rosterPlayerRepository, LeagueService leagueService, LeagueRepository leagueRepository, PlayerRepository playerRepository, UserRepository userRepository) {
         this.rosterPlayerRepository = rosterPlayerRepository;
         this.leagueService = leagueService;
@@ -38,6 +52,18 @@ public class RosterService {
         this.userRepository = userRepository;
     }
 
+    /**
+     * Crea o reemplaza el equipo de un usuario en una liga.
+     * <p>
+     * Se realizan varias validaciones, como la pertenencia del usuario a la liga,
+     * el tamaño del equipo, el número de porteros y la existencia de los jugadores.
+     * </p>
+     *
+     * @param leagueId        El ID de la liga.
+     * @param rosterCreateDto DTO con la lista de jugadores y sus roles.
+     * @param userId          El ID del usuario que crea el equipo.
+     * @return Un mensaje de confirmación del éxito.
+     */
     @Transactional
     public String createRoster(Long leagueId, RosterCreateDto rosterCreateDto, Long userId) {
         if (!leagueService.isUserParticipant(leagueId, userId)) {
@@ -88,6 +114,16 @@ public class RosterService {
         return "Equipo de la jornada guardado con éxito.";
     }
 
+    /**
+     * Obtiene el equipo (roster) de un usuario en una liga.
+     * <p>
+     * Solo los participantes de la liga pueden ver su propio equipo.
+     * </p>
+     *
+     * @param leagueId El ID de la liga.
+     * @param userId   El ID del usuario.
+     * @return Una lista de {@link RosterPlayerResponseDto} con los detalles de los jugadores del equipo.
+     */
     public List<RosterPlayerResponseDto> getUserRoster(Long leagueId, Long userId) {
         if (!leagueService.isUserParticipant(leagueId, userId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo los participantes de la liga pueden ver su equipo.");
@@ -98,6 +134,14 @@ public class RosterService {
         return rosterPlayers.stream().map(rosterPlayer -> new RosterPlayerResponseDto(rosterPlayer.getPlayer().getId(), rosterPlayer.getPlayer().getName(), rosterPlayer.getRole(), rosterPlayer.getPlayer().getImage(), rosterPlayer.getPlayer().getTotalPoints())).collect(Collectors.toList());
     }
 
+    /**
+     * Elimina un jugador de un equipo y lo reemplaza por un jugador 'placeholder'.
+     *
+     * @param leagueId         El ID de la liga.
+     * @param userId           El ID del usuario.
+     * @param playerIdToRemove El ID del jugador a eliminar.
+     * @return Un mensaje de confirmación.
+     */
     @Transactional
     public String removePlayerFromRoster(Long leagueId, Long userId, Long playerIdToRemove) {
         if (!leagueService.isUserParticipant(leagueId, userId)) {
@@ -136,6 +180,15 @@ public class RosterService {
         return "Jugador eliminado y reemplazado con éxito.";
     }
 
+    /**
+     * Añade un jugador a un equipo, ocupando una posición vacía (placeholder).
+     *
+     * @param leagueId      El ID de la liga.
+     * @param userId        El ID del usuario.
+     * @param playerIdToAdd El ID del jugador a añadir.
+     * @param position      El rol del jugador (PORTERO o CAMPO).
+     * @return Un mensaje de confirmación.
+     */
     @Transactional
     public String addPlayerToRoster(Long leagueId, Long userId, Long playerIdToAdd, PlayerTeamRole position) {
         Player playerToAdd = playerRepository.findById(playerIdToAdd).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "El jugador a añadir no existe."));

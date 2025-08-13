@@ -5,6 +5,17 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+/**
+ * @author Juan Francisco Carceles
+ * @version 1.0
+ * @since 01/08/2025
+ * <p>
+ * Entidad JPA que almacena las estadísticas de un jugador en un partido específico.
+ * <p>
+ * Incluye métricas de rendimiento como goles, asistencias, faltas, etc.,
+ * así como los puntos calculados para el jugador como jugador de campo y como portero.
+ * </p>
+ */
 @Entity
 @Table(name = "player_match_stats")
 @Data

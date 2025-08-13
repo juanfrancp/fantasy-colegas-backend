@@ -17,6 +17,17 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
+/**
+ * @author Juan Francisco Carceles
+ * @version 1.0
+ * @since 01/08/2025
+ * <p>
+ * Servicio para la gestión de jugadores.
+ * <p>
+ * Contiene la lógica de negocio para crear, actualizar, eliminar y consultar jugadores,
+ * con validaciones de permisos de administrador y pertenencia a la liga.
+ * </p>
+ */
 @Service
 public class PlayerService {
 
@@ -25,6 +36,9 @@ public class PlayerService {
     private final LeagueService leagueService;
     private final RosterPlayerRepository rosterPlayerRepository;
 
+    /**
+     * Constructor del servicio que inyecta las dependencias de los repositorios.
+     */
     public PlayerService(PlayerRepository playerRepository, LeagueRepository leagueRepository, LeagueService leagueService, RosterPlayerRepository rosterPlayerRepository) {
         this.playerRepository = playerRepository;
         this.leagueRepository = leagueRepository;
@@ -32,6 +46,18 @@ public class PlayerService {
         this.rosterPlayerRepository = rosterPlayerRepository;
     }
 
+    /**
+     * Actualiza los datos de un jugador.
+     * <p>
+     * Solo los administradores de la liga pueden realizar esta acción.
+     * </p>
+     *
+     * @param leagueId        El ID de la liga a la que pertenece el jugador.
+     * @param playerId        El ID del jugador a actualizar.
+     * @param playerUpdateDto DTO con los datos a actualizar.
+     * @param userId          El ID del usuario que realiza la petición.
+     * @return Un {@link PlayerResponseDto} con los datos del jugador actualizado.
+     */
     @Transactional
     public PlayerResponseDto updatePlayer(Long leagueId, Long playerId, PlayerUpdateDto playerUpdateDto, Long userId) {
         if (!leagueService.checkIfUserIsAdmin(leagueId, userId)) {
@@ -55,6 +81,17 @@ public class PlayerService {
         return mapToPlayerResponseDto(updatedPlayer);
     }
 
+    /**
+     * Crea un nuevo jugador en una liga.
+     * <p>
+     * Solo los administradores de la liga pueden realizar esta acción.
+     * </p>
+     *
+     * @param leagueId        El ID de la liga.
+     * @param playerCreateDto DTO con los datos para la creación del jugador.
+     * @param userId          El ID del usuario que realiza la petición.
+     * @return Un {@link PlayerResponseDto} con los datos del jugador creado.
+     */
     @Transactional
     public PlayerResponseDto createPlayer(Long leagueId, PlayerCreateDto playerCreateDto, Long userId) {
         if (!leagueService.checkIfUserIsAdmin(leagueId, userId)) {
@@ -78,6 +115,17 @@ public class PlayerService {
         return mapToPlayerResponseDto(savedPlayer);
     }
 
+    /**
+     * Elimina un jugador de la liga.
+     * <p>
+     * Antes de eliminarlo, si el jugador está en algún roster, se reemplaza por un jugador 'placeholder'.
+     * Solo los administradores de la liga pueden realizar esta acción.
+     * </p>
+     *
+     * @param leagueId El ID de la liga.
+     * @param playerId El ID del jugador a eliminar.
+     * @param userId   El ID del usuario que realiza la petición.
+     */
     @Transactional
     public void deletePlayer(Long leagueId, Long playerId, Long userId) {
         if (!leagueService.checkIfUserIsAdmin(leagueId, userId)) {
@@ -99,6 +147,16 @@ public class PlayerService {
         playerRepository.delete(player);
     }
 
+    /**
+     * Obtiene un jugador por su ID.
+     * <p>
+     * Se valida que el jugador pertenezca a la liga especificada.
+     * </p>
+     *
+     * @param leagueId El ID de la liga.
+     * @param playerId El ID del jugador.
+     * @return Un {@link PlayerResponseDto} con los datos del jugador.
+     */
     public PlayerResponseDto getPlayerById(Long leagueId, Long playerId) {
         Player player = playerRepository.findById(playerId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Jugador no encontrado."));
 
@@ -109,6 +167,18 @@ public class PlayerService {
         return mapToPlayerResponseDto(player);
     }
 
+    /**
+     * Actualiza los puntos totales de un jugador.
+     * <p>
+     * Solo los administradores de la liga pueden realizar esta acción.
+     * </p>
+     *
+     * @param leagueId        El ID de la liga.
+     * @param playerId        El ID del jugador a actualizar.
+     * @param pointsUpdateDto DTO con la nueva cantidad de puntos.
+     * @param userId          El ID del usuario que realiza la petición.
+     * @return Un {@link PlayerResponseDto} con los datos del jugador actualizado.
+     */
     @Transactional
     public PlayerResponseDto updatePlayerPoints(Long leagueId, Long playerId, PointsUpdateDto pointsUpdateDto, Long userId) {
         if (!leagueService.checkIfUserIsAdmin(leagueId, userId)) {
@@ -127,6 +197,12 @@ public class PlayerService {
         return mapToPlayerResponseDto(updatedPlayer);
     }
 
+    /**
+     * Mapea una entidad {@link Player} a un DTO de respuesta.
+     *
+     * @param player La entidad {@link Player}.
+     * @return El DTO de respuesta {@link PlayerResponseDto}.
+     */
     private PlayerResponseDto mapToPlayerResponseDto(Player player) {
         return new PlayerResponseDto(player.getId(), player.getName(), player.getImage(), player.getTotalPoints());
     }
