@@ -2,7 +2,7 @@
 
 El backend de Fantasy Colegas es una aplicación construida con Spring Boot que gestiona toda la lógica de negocio para una plataforma de ligas de fantasía de fútbol. Permite a los usuarios crear ligas personalizadas, gestionar sus equipos (rosters), seguir el rendimiento de los jugadores y calcular las puntuaciones de cada jornada.
 
-## 🚀 Características Principales
+## Características Principales
 
 * **Autenticación y Autorización:**
     * Registro de nuevos usuarios y autenticación segura mediante JWT.
@@ -24,14 +24,14 @@ El backend de Fantasy Colegas es una aplicación construida con Spring Boot que 
     * Validaciones de tamaño y roles de los jugadores en el equipo.
     * Sustitución automática de jugadores eliminados por un jugador "placeholder".
 
-## 🛠️ Tecnologías Utilizadas
+## Tecnologías Utilizadas
 
 * **Backend:** Spring Boot, Spring Security, JWT.
 * **Base de Datos:** JPA / Hibernate (compatible con cualquier base de datos SQL).
 * **Dependencias:** Lombok para reducir código repetitivo, Jakarta Validation para la validación de DTOs.
 * **Patrones de Diseño:** Arquitectura de capas (Controller, Service, Repository).
 
-## ⚙️ Configuración y Ejecución
+## Configuración y Ejecución
 
 Para ejecutar la aplicación, necesitas tener instalado Java 17 o superior y Maven.
 
@@ -49,7 +49,7 @@ Para ejecutar la aplicación, necesitas tener instalado Java 17 o superior y Mav
     ```
     La aplicación se iniciará en `http://localhost:8080`.
 
-## 📌 Puntos de la API (Ejemplos)
+## Puntos de la API (Ejemplos)
 
 * `POST /api/auth/register`: Registro de un nuevo usuario.
 * `POST /api/auth/login`: Autenticación y obtención de JWT.
