@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
  * @author Juan Francisco Carceles
  * @version 1.0
  * @since 01/08/2025
- *
+ * <p>
  * Controlador REST para la autenticación de usuarios.
  * <p>
  * Proporciona endpoints para el inicio de sesión y el registro de nuevos usuarios en la aplicación.
@@ -30,25 +30,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
-
-    /**
-     * Gestor de autenticación de Spring Security.
-     */
-    @Autowired
-    private AuthenticationManager authenticationManager;
-
-    /**
-     * Servicio personalizado para cargar los detalles del usuario.
-     */
-    @Autowired
-    private CustomUserDetailsService userDetailsService;
-
-    /**
-     * Utilidad para la generación y gestión de tokens JWT.
-     */
-    @Autowired
-    private JwtUtil jwtUtil;
-
     /**
      * Servicio de autenticación para la lógica de negocio de registro.
      */
@@ -68,17 +49,9 @@ public class AuthController {
      */
     @PostMapping("/login")
     public ResponseEntity<?> createAuthenticationToken(@RequestBody LoginDto loginDto) throws Exception {
-        try {
-            authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(loginDto.getUsernameOrEmail(), loginDto.getPassword()));
-        } catch (Exception e) {
-            throw new Exception("Incorrect username or password", e);
-        }
-
-        final UserDetails userDetails = userDetailsService.loadUserByUsername(loginDto.getUsernameOrEmail());
-
-        final String jwt = jwtUtil.generateToken(userDetails);
-
-        return ResponseEntity.ok(new AuthResponse(jwt));
+        // Delega la lógica de negocio al servicio
+        AuthResponse authResponse = authService.login(loginDto);
+        return ResponseEntity.ok(authResponse);
     }
 
     /**
