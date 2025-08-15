@@ -6,11 +6,13 @@ import com.fantasycolegas.fantasy_colegas_backend.dto.response.AuthResponse;
 import com.fantasycolegas.fantasy_colegas_backend.service.AuthService;
 import com.fantasycolegas.fantasy_colegas_backend.service.CustomUserDetailsService;
 import com.fantasycolegas.fantasy_colegas_backend.util.JwtUtil;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -30,9 +32,16 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
-    /**
-     * Servicio de autenticación para la lógica de negocio de registro.
-     */
+
+    @Autowired
+    private AuthenticationManager authenticationManager;
+
+    @Autowired
+    private CustomUserDetailsService userDetailsService;
+
+    @Autowired
+    private JwtUtil jwtUtil;
+
     @Autowired
     private AuthService authService;
 
@@ -48,10 +57,17 @@ public class AuthController {
      * @throws Exception Si las credenciales son incorrectas.
      */
     @PostMapping("/login")
-    public ResponseEntity<?> createAuthenticationToken(@RequestBody LoginDto loginDto) throws Exception {
-        // Delega la lógica de negocio al servicio
-        AuthResponse authResponse = authService.login(loginDto);
-        return ResponseEntity.ok(authResponse);
+    public ResponseEntity<?> createAuthenticationToken(@RequestBody LoginDto loginDto) {
+        try {
+            authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(loginDto.getUsernameOrEmail(), loginDto.getPassword()));
+        } catch (AuthenticationException e) { // <-- Gestión de excepción corregida
+            return new ResponseEntity<>("Incorrect username or password", HttpStatus.BAD_REQUEST);
+        }
+
+        final UserDetails userDetails = userDetailsService.loadUserByUsername(loginDto.getUsernameOrEmail());
+        final String jwt = jwtUtil.generateToken(userDetails);
+
+        return ResponseEntity.ok(new AuthResponse(jwt));
     }
 
     /**
@@ -64,11 +80,15 @@ public class AuthController {
      * @return {@link ResponseEntity} con un mensaje de éxito o un error si el registro falla (ej. usuario o email ya existen).
      */
     @PostMapping("/register")
-    public ResponseEntity<?> registerUser(@RequestBody RegisterDto registerDto) {
-        if (authService.registerUser(registerDto)) {
-            return new ResponseEntity<>("User registered successfully", HttpStatus.OK);
-        } else {
-            return new ResponseEntity<>("Username or email already in use", HttpStatus.BAD_REQUEST);
+    public ResponseEntity<?> registerUser(@Valid @RequestBody RegisterDto registerDto) {
+        try{
+            if (authService.registerUser(registerDto)) {
+                return new ResponseEntity<>("User registered successfully", HttpStatus.OK);
+            } else {
+                return new ResponseEntity<>("Username or email already in use", HttpStatus.BAD_REQUEST);
+            }
+        } catch (RuntimeException e) {
+            return new ResponseEntity<>("An unexpected error occurred", HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 }
