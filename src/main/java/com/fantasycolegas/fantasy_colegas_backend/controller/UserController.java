@@ -65,29 +65,37 @@ public class UserController {
      * @param userUpdateDto DTO con los datos del usuario a actualizar.
      * @return Una {@link ResponseEntity} con el objeto {@link User} actualizado.
      */
-    @PutMapping("/{id}")
     @PreAuthorize("isAuthenticated() and #id == principal.id")
+    @PutMapping("/{id}")
     public ResponseEntity<User> updateUser(@PathVariable Long id, @Valid @RequestBody UserUpdateDto userUpdateDto) {
-        Optional<User> userOptional = userRepository.findById(id);
 
-        if (!userOptional.isPresent()) {
-            return ResponseEntity.notFound().build();
+        User user = userRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+
+        // 1. Validar el email
+        if (userUpdateDto.getEmail() != null && !userUpdateDto.getEmail().equals(user.getEmail())) {
+            if (userRepository.findByEmail(userUpdateDto.getEmail()).isPresent()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El email ya está en uso");
+            }
         }
 
-        User user = userOptional.get();
+        // 2. Validar el username
+        if (userUpdateDto.getUsername() != null && !userUpdateDto.getUsername().equals(user.getUsername())) {
+            if (userRepository.findByUsername(userUpdateDto.getUsername()).isPresent()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El nombre de usuario ya está en uso");
+            }
+        }
 
+        // 3. Actualizar los campos si están presentes
         if (userUpdateDto.getUsername() != null) {
             user.setUsername(userUpdateDto.getUsername());
         }
         if (userUpdateDto.getEmail() != null) {
             user.setEmail(userUpdateDto.getEmail());
         }
-        if (userUpdateDto.getPassword() != null && !userUpdateDto.getPassword().isEmpty()) {
-            user.setPassword(passwordEncoder.encode(userUpdateDto.getPassword()));
-        }
 
-        userRepository.save(user);
-        return ResponseEntity.ok(user);
+        User updatedUser = userRepository.save(user);
+
+        return ResponseEntity.ok(updatedUser);
     }
 
     /**
@@ -107,12 +115,23 @@ public class UserController {
     public ResponseEntity<User> updatePassword(@PathVariable Long id, @Valid @RequestBody PasswordUpdateDto passwordUpdateDto, @AuthenticationPrincipal CustomUserDetails currentUser) {
 
         User user = userRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+
+        // 1. Verifica si la contraseña antigua es incorrecta.
         if (!passwordEncoder.matches(passwordUpdateDto.getOldPassword(), user.getPassword())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La contraseña antigua es incorrecta");
         }
+
+        // 2. AÑADE ESTA NUEVA VERIFICACIÓN
+        // Verifica si la contraseña nueva es la misma que la antigua
+        if (passwordEncoder.matches(passwordUpdateDto.getNewPassword(), user.getPassword())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La nueva contraseña no puede ser la misma que la antigua.");
+        }
+
+        // Si ambas verificaciones pasan, procede a actualizar la contraseña
         String newEncodedPassword = passwordEncoder.encode(passwordUpdateDto.getNewPassword());
         user.setPassword(newEncodedPassword);
         User updatedUser = userRepository.save(user);
+
         return ResponseEntity.ok(updatedUser);
     }
 
