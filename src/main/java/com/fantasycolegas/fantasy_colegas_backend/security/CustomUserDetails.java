@@ -1,13 +1,13 @@
 package com.fantasycolegas.fantasy_colegas_backend.security;
 
-
 import com.fantasycolegas.fantasy_colegas_backend.model.User;
 import lombok.Getter;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
-
-import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * @author Juan Francisco Carceles
@@ -55,7 +55,11 @@ public class CustomUserDetails implements UserDetails {
      * @return Una nueva instancia de {@link CustomUserDetails}.
      */
     public static CustomUserDetails build(User user) {
-        return new CustomUserDetails(user.getId(), user.getUsername(), user.getPassword(), new ArrayList<>());
+        List<GrantedAuthority> authorities = user.getLeagueRoles().stream()
+                .map(role -> new SimpleGrantedAuthority("ROLE_" + role.getRole()))
+                .collect(Collectors.toList());
+
+        return new CustomUserDetails(user.getId(), user.getUsername(), user.getPassword(), authorities);
     }
 
     @Override
