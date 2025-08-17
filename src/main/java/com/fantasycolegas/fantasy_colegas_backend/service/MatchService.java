@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -102,8 +103,15 @@ public class MatchService {
     public PlayerMatchStatsResponseDto updatePlayerStats(Long matchId, PlayerMatchStatsUpdateDto statsUpdateDto) {
         Match match = matchRepository.findById(matchId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Partido no encontrado."));
 
+        if (match.getMatchDate().isAfter(LocalDate.now())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No se pueden registrar estadísticas de un partido que aún no se ha jugado.");
+        }
+
         Player player = playerRepository.findById(statsUpdateDto.getPlayerId()).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Jugador no encontrado."));
 
+        if (player.isPlaceholder()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No se pueden asignar estadísticas al jugador vacío.");
+        }
 
         if (player.getLeague() == null || !player.getLeague().getId().equals(match.getLeague().getId())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El jugador no pertenece a la liga de este partido.");

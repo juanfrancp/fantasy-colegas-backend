@@ -66,6 +66,7 @@ class MatchServiceTest {
         match = new Match();
         match.setId(matchId);
         match.setLeague(league);
+        match.setMatchDate(LocalDate.now().minusDays(1));
 
         player = new Player();
         player.setId(playerId);
@@ -154,25 +155,19 @@ class MatchServiceTest {
 
     @Test
     void updatePlayerStats_shouldCalculateAndSavePointsForAllRoles() {
-        // Arrange
         PlayerMatchStatsUpdateDto updateDto = new PlayerMatchStatsUpdateDto();
         updateDto.setPlayerId(playerId);
-        updateDto.setGolesMarcados(2); // Goles que dan puntos
+        updateDto.setGolesMarcados(2);
 
-        // Mock de las dependencias necesarias que causaban el error
         when(matchRepository.findById(matchId)).thenReturn(Optional.of(match));
         when(playerRepository.findById(playerId)).thenReturn(Optional.of(player));
         when(playerMatchStatsRepository.findByMatchIdAndPlayerId(matchId, playerId)).thenReturn(Optional.empty());
 
-        // Simular que el cálculo de puntos devuelve valores diferentes para cada rol
         when(pointsCalculationService.calculatePointsForRole(any(PlayerMatchStatsUpdateDto.class), eq(PlayerTeamRole.CAMPO))).thenReturn(10.0);
         when(pointsCalculationService.calculatePointsForRole(any(PlayerMatchStatsUpdateDto.class), eq(PlayerTeamRole.PORTERO))).thenReturn(3.0);
 
-        // Act
         matchService.updatePlayerStats(matchId, updateDto);
 
-        // Assert
-        // Capturar el argumento guardado para verificar que los puntos se calcularon y asignaron correctamente
         ArgumentCaptor<PlayerMatchStats> statsCaptor = ArgumentCaptor.forClass(PlayerMatchStats.class);
         verify(playerMatchStatsRepository, times(1)).save(statsCaptor.capture());
 
@@ -183,45 +178,37 @@ class MatchServiceTest {
 
     @Test
     void updatePlayerStats_whenStatsAlreadyExist_shouldUpdateExistingStats() {
-        // Arrange
         PlayerMatchStats existingStats = new PlayerMatchStats();
-        existingStats.setId(100L); // ID existente
-        existingStats.setGolesMarcados(1); // Valor antiguo
+        existingStats.setId(100L);
+        existingStats.setGolesMarcados(1);
 
         PlayerMatchStatsUpdateDto updateDto = new PlayerMatchStatsUpdateDto();
         updateDto.setPlayerId(playerId);
-        updateDto.setGolesMarcados(2); // Nuevo valor
+        updateDto.setGolesMarcados(2);
 
         when(matchRepository.findById(matchId)).thenReturn(Optional.of(match));
         when(playerRepository.findById(playerId)).thenReturn(Optional.of(player));
         when(playerMatchStatsRepository.findByMatchIdAndPlayerId(matchId, playerId)).thenReturn(Optional.of(existingStats));
 
-        // Act
         matchService.updatePlayerStats(matchId, updateDto);
 
-        // Assert
         ArgumentCaptor<PlayerMatchStats> statsCaptor = ArgumentCaptor.forClass(PlayerMatchStats.class);
         verify(playerMatchStatsRepository, times(1)).save(statsCaptor.capture());
 
-        // Verifica que se está actualizando la entidad existente y no creando una nueva
         assertEquals(existingStats.getId(), statsCaptor.getValue().getId());
-        // Verifica que el valor se ha actualizado correctamente
         assertEquals(2, statsCaptor.getValue().getGolesMarcados());
     }
 
     @Test
     void checkIfUserIsAdminOfMatchLeague_whenMatchNotFound_shouldThrowException() {
-        // Arrange
         Long nonExistentMatchId = 99L;
         when(matchRepository.findById(nonExistentMatchId)).thenReturn(Optional.empty());
 
-        // Act & Assert
         assertThrows(ResponseStatusException.class, () -> matchService.checkIfUserIsAdminOfMatchLeague(nonExistentMatchId, userId));
     }
 
     @Test
     void createMatch_whenLeagueHasExistingMatches_shouldCreateMatchWithCorrectName() {
-        // Arrange: Simulamos que ya existen 5 partidos en la liga
         when(leagueRepository.findById(leagueId)).thenReturn(Optional.of(league));
         when(matchRepository.countByLeagueId(leagueId)).thenReturn(5L);
 
@@ -229,10 +216,8 @@ class MatchServiceTest {
         createDto.setLeagueId(leagueId);
         createDto.setMatchDate(LocalDate.now());
 
-        // Act
         MatchResponseDto result = matchService.createMatch(createDto);
 
-        // Assert: Verificamos que el nuevo partido se llama correctamente "Partido jornada 6"
         assertNotNull(result);
         assertEquals("Partido jornada 6", result.getName());
         verify(matchRepository, times(1)).save(any(Match.class));
@@ -240,11 +225,9 @@ class MatchServiceTest {
 
     @Test
     void updatePlayerStats_whenPlayerNotInMatchLeague_shouldThrowException() {
-        // Arrange
-        // Creamos una liga diferente para el jugador
         League anotherLeague = new League();
         anotherLeague.setId(2L);
-        player.setLeague(anotherLeague); // Asignamos el jugador a la otra liga
+        player.setLeague(anotherLeague);
 
         PlayerMatchStatsUpdateDto updateDto = new PlayerMatchStatsUpdateDto();
         updateDto.setPlayerId(playerId);
@@ -252,8 +235,6 @@ class MatchServiceTest {
         when(matchRepository.findById(matchId)).thenReturn(Optional.of(match));
         when(playerRepository.findById(playerId)).thenReturn(Optional.of(player));
 
-        // Act & Assert
-        // Verificamos que se lanza la excepción correcta
         ResponseStatusException exception = assertThrows(ResponseStatusException.class,
                 () -> matchService.updatePlayerStats(matchId, updateDto));
 
@@ -263,7 +244,6 @@ class MatchServiceTest {
 
     @Test
     void updatePlayerStats_whenConcurrentAccess_shouldHandleGracefully() {
-        // Arrange
         PlayerMatchStats existingStats = new PlayerMatchStats();
         existingStats.setId(100L);
         existingStats.setGolesMarcados(1);
@@ -272,31 +252,22 @@ class MatchServiceTest {
         updateDto.setPlayerId(playerId);
         updateDto.setGolesMarcados(2);
 
-        // Simulamos que entre que se busca la estadística y se va a guardar, otro proceso ya la ha creado.
-        // Primero, la búsqueda no encuentra nada.
         when(playerMatchStatsRepository.findByMatchIdAndPlayerId(matchId, playerId))
-                .thenReturn(Optional.empty()) // La primera llamada no encuentra nada
-                .thenReturn(Optional.of(existingStats)); // Una segunda llamada sí lo encontraría
+                .thenReturn(Optional.empty())
+                .thenReturn(Optional.of(existingStats));
 
-        // Al no encontrarla, se llamará a save con un objeto nuevo.
         when(matchRepository.findById(matchId)).thenReturn(Optional.of(match));
         when(playerRepository.findById(playerId)).thenReturn(Optional.of(player));
         when(playerMatchStatsRepository.save(any(PlayerMatchStats.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-
-        // Act
         matchService.updatePlayerStats(matchId, updateDto);
 
-        // Assert
-        // Verificamos que aunque la primera búsqueda falló (simulando concurrencia),
-        // el resultado final es una única operación de guardado.
         verify(playerMatchStatsRepository, times(1)).save(any(PlayerMatchStats.class));
     }
 
     @Test
     void updatePlayerStats_whenPlayerHasNoLeague_shouldThrowException() {
-        // Arrange
-        player.setLeague(null); // El jugador no tiene liga asignada
+        player.setLeague(null);
 
         PlayerMatchStatsUpdateDto updateDto = new PlayerMatchStatsUpdateDto();
         updateDto.setPlayerId(playerId);
@@ -304,11 +275,57 @@ class MatchServiceTest {
         when(matchRepository.findById(matchId)).thenReturn(Optional.of(match));
         when(playerRepository.findById(playerId)).thenReturn(Optional.of(player));
 
-        // Act & Assert
         ResponseStatusException exception = assertThrows(ResponseStatusException.class,
                 () -> matchService.updatePlayerStats(matchId, updateDto));
 
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
         assertTrue(exception.getReason().contains("El jugador no pertenece a la liga de este partido."));
+    }
+
+    @Test
+    void updatePlayerStats_whenPlayerIsPlaceholder_shouldThrowException() {
+        player.setPlaceholder(true);
+        PlayerMatchStatsUpdateDto updateDto = new PlayerMatchStatsUpdateDto();
+        updateDto.setPlayerId(playerId);
+
+        when(matchRepository.findById(matchId)).thenReturn(Optional.of(match));
+        when(playerRepository.findById(playerId)).thenReturn(Optional.of(player));
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> matchService.updatePlayerStats(matchId, updateDto));
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        assertTrue(exception.getReason().contains("No se pueden asignar estadísticas al jugador vacío."));
+    }
+
+    @Test
+    void updatePlayerStats_whenMatchIsInTheFuture_shouldThrowException() {
+        match.setMatchDate(LocalDate.now().plusDays(1));
+        PlayerMatchStatsUpdateDto updateDto = new PlayerMatchStatsUpdateDto();
+        updateDto.setPlayerId(playerId);
+
+        when(matchRepository.findById(matchId)).thenReturn(Optional.of(match));
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> matchService.updatePlayerStats(matchId, updateDto));
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        assertTrue(exception.getReason().contains("No se pueden registrar estadísticas de un partido que aún no se ha jugado."));
+    }
+
+    @Test
+    void updatePlayerStats_whenDatabaseSaveFails_shouldRollbackTransaction() {
+        PlayerMatchStatsUpdateDto updateDto = new PlayerMatchStatsUpdateDto();
+        updateDto.setPlayerId(playerId);
+
+        when(matchRepository.findById(matchId)).thenReturn(Optional.of(match));
+        when(playerRepository.findById(playerId)).thenReturn(Optional.of(player));
+        when(playerMatchStatsRepository.findByMatchIdAndPlayerId(matchId, playerId)).thenReturn(Optional.empty());
+
+        when(playerMatchStatsRepository.save(any(PlayerMatchStats.class)))
+                .thenThrow(new RuntimeException("Error simulado de base de datos"));
+
+        assertThrows(RuntimeException.class,
+                () -> matchService.updatePlayerStats(matchId, updateDto));
     }
 }
