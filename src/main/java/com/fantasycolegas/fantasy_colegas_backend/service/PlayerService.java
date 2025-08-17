@@ -134,6 +134,10 @@ public class PlayerService {
 
         Player player = playerRepository.findById(playerId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Jugador no encontrado."));
 
+        if (player.isPlaceholder()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No se puede eliminar al jugador vacío (placeholder).");
+        }
+
         if (!player.getLeague().getId().equals(leagueId)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El jugador no pertenece a la liga especificada.");
         }
@@ -141,8 +145,10 @@ public class PlayerService {
         Player placeholderPlayer = playerRepository.findByIsPlaceholderTrue().orElseThrow(() -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "El jugador vacío no se encuentra en la base de datos."));
 
         List<RosterPlayer> rosterEntries = rosterPlayerRepository.findAllByPlayerId(playerId);
-        rosterEntries.forEach(entry -> entry.setPlayer(placeholderPlayer));
-        rosterPlayerRepository.saveAll(rosterEntries);
+        if (!rosterEntries.isEmpty()) {
+            rosterEntries.forEach(entry -> entry.setPlayer(placeholderPlayer));
+            rosterPlayerRepository.saveAll(rosterEntries);
+        }
 
         playerRepository.delete(player);
     }
