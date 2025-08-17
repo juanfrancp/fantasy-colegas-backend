@@ -66,7 +66,7 @@ public class LeagueController {
      * @param userId   El ID del usuario.
      * @return Un objeto {@link UserScoreDto} con la puntuación del usuario.
      */
-    @GetMapping("/users/{userId}/points")
+    @GetMapping("/{leagueId}/users/{userId}/points")
     public ResponseEntity<?> getUserPointsInLeague(@PathVariable Long leagueId, @PathVariable Long userId) {
         try {
             UserScoreDto userPoints = leagueService.getUserPointsInLeague(leagueId, userId);
