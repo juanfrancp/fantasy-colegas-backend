@@ -46,6 +46,10 @@ public class PointsCalculationService {
      * @return Los puntos totales calculados para el jugador.
      */
     public double calculatePointsForRole(PlayerMatchStatsUpdateDto statsDto, PlayerTeamRole playerRole) {
+        if (statsDto == null) {
+            throw new IllegalArgumentException("El DTO de estadísticas no puede ser nulo.");
+        }
+
         List<ScoringRule> rules = scoringRuleRepository.findAllByRole(playerRole);
         double totalPoints = 0.0;
 
