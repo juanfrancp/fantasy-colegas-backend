@@ -104,8 +104,13 @@ public class MatchService {
 
         Player player = playerRepository.findById(statsUpdateDto.getPlayerId()).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Jugador no encontrado."));
 
-        Optional<PlayerMatchStats> existingStats = playerMatchStatsRepository.findByMatchIdAndPlayerId(matchId, player.getId());
-        PlayerMatchStats playerMatchStats = existingStats.orElseGet(PlayerMatchStats::new);
+
+        if (player.getLeague() == null || !player.getLeague().getId().equals(match.getLeague().getId())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El jugador no pertenece a la liga de este partido.");
+        }
+
+        PlayerMatchStats playerMatchStats = playerMatchStatsRepository.findByMatchIdAndPlayerId(matchId, player.getId())
+                .orElseGet(PlayerMatchStats::new);
 
         playerMatchStats.setMatch(match);
         playerMatchStats.setPlayer(player);
@@ -137,8 +142,6 @@ public class MatchService {
 
         playerMatchStatsRepository.save(playerMatchStats);
 
-        updateUserPoints(playerMatchStats, player.getLeague().getId());
-
         return new PlayerMatchStatsResponseDto(playerMatchStats.getId(), playerMatchStats.getPlayer().getId(), playerMatchStats.getGolesMarcados(), playerMatchStats.getFallosClarosDeGol(), playerMatchStats.getAsistencias(), playerMatchStats.getGolesEncajadosComoPortero(), playerMatchStats.getParadasComoPortero(), playerMatchStats.getCesionesConcedidas(), playerMatchStats.getFaltasCometidas(), playerMatchStats.getFaltasRecibidas(), playerMatchStats.getPenaltisRecibidos(), playerMatchStats.getPenaltisCometidos(), playerMatchStats.getPasesAcertados(), playerMatchStats.getPasesFallados(), playerMatchStats.getRobosDeBalon(), playerMatchStats.getTirosCompletados(), playerMatchStats.getTirosEntreLosTresPalos(), playerMatchStats.getTiempoJugado(), playerMatchStats.getTarjetasAmarillas(), playerMatchStats.getTarjetasRojas(), playerMatchStats.getTotalFieldPoints(), playerMatchStats.getTotalGoalkeeperPoints());
     }
 
@@ -152,31 +155,5 @@ public class MatchService {
     public boolean checkIfUserIsAdminOfMatchLeague(Long matchId, Long userId) {
         Match match = matchRepository.findById(matchId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Partido no encontrado."));
         return leagueService.checkIfUserIsAdmin(match.getLeague().getId(), userId);
-    }
-
-    /**
-     * Actualiza los puntos de los usuarios cuyos rosters contienen al jugador.
-     * <p>
-     * Recalcula los puntos totales del jugador y los suma a los usuarios que lo tienen en su equipo.
-     * </p>
-     *
-     * @param playerMatchStats Las estadísticas del jugador en el partido.
-     * @param leagueId         El ID de la liga.
-     */
-    @Transactional
-    private void updateUserPoints(PlayerMatchStats playerMatchStats, Long leagueId) {
-        List<RosterPlayer> rosterPlayers = rosterPlayerRepository.findByUserIdAndLeagueId(playerMatchStats.getPlayer().getId(), leagueId);
-
-        for (RosterPlayer rosterPlayer : rosterPlayers) {
-            User user = rosterPlayer.getUser();
-            double pointsToAdd = 0.0;
-
-            if (rosterPlayer.getRole() == PlayerTeamRole.CAMPO) {
-                pointsToAdd = playerMatchStats.getTotalFieldPoints();
-            } else if (rosterPlayer.getRole() == PlayerTeamRole.PORTERO) {
-                pointsToAdd = playerMatchStats.getTotalGoalkeeperPoints();
-            }
-
-        }
     }
 }
