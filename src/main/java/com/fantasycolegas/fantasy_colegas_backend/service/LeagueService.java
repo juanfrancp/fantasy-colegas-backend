@@ -242,6 +242,8 @@ public class LeagueService {
         UserLeagueRole adminRole = new UserLeagueRole(creator, savedLeague, LeagueRole.ADMIN);
         userLeagueRoleRepository.save(adminRole);
 
+        savedLeague.getUserRoles().add(adminRole);
+
 
         createRandomRosterForUser(newLeague.getId(), creator.getId());
 
