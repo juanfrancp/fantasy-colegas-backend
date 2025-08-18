@@ -1,6 +1,7 @@
 package com.fantasycolegas.fantasy_colegas_backend.dto.request;
 
 import com.fantasycolegas.fantasy_colegas_backend.model.enums.PlayerTeamRole;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 /**
@@ -17,6 +18,9 @@ import lombok.Data;
  */
 @Data
 public class AddPlayerToRosterDto {
+    @NotNull(message = "El ID del jugador no puede ser nulo.")
     private Long playerId;
+
+    @NotNull(message = "La posición del jugador no puede ser nula.")
     private PlayerTeamRole position;
 }
