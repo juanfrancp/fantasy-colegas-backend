@@ -2,7 +2,7 @@
 
 El backend de **Fantasy Colegas** es una aplicación robusta construida con **Spring Boot** y **Java 17** que gestiona toda la lógica de negocio para una plataforma de ligas de fantasía de fútbol. Permite a los usuarios crear ligas personalizadas, gestionar sus equipos, seguir el rendimiento de los jugadores y calcular las puntuaciones de cada jornada de forma automática.
 
-## ✨ Características Principales
+## Características Principales
 
 * **Autenticación y Autorización Segura**:
     * Registro de nuevos usuarios y autenticación mediante **JWT (JSON Web Tokens)**.
@@ -24,7 +24,7 @@ El backend de **Fantasy Colegas** es una aplicación robusta construida con **Sp
     * Validaciones para asegurar el cumplimiento de las reglas de la liga (tamaño del equipo, un único portero, etc.).
     * Sustitución automática de jugadores eliminados por un "placeholder" para mantener la integridad del equipo.
 
-## 🛠️ Tecnologías Utilizadas
+## Tecnologías Utilizadas
 
 * **Backend**: Spring Boot 3, Spring Security, JWT.
 * **Base de Datos**: JPA / Hibernate (configurado para H2, pero compatible con cualquier base de datos SQL como PostgreSQL o MySQL).
@@ -32,7 +32,7 @@ El backend de **Fantasy Colegas** es una aplicación robusta construida con **Sp
 * **Testing**: JUnit 5, Mockito, Spring Boot Test para pruebas de integración y unitarias.
 * **Arquitectura**: Diseño basado en capas (Controlador, Servicio, Repositorio).
 
-## 🚀 Configuración y Ejecución
+## Configuración y Ejecución
 
 Para poner en marcha la aplicación en tu entorno local, necesitarás tener instalado lo siguiente:
 
@@ -57,7 +57,7 @@ Sigue estos pasos para ejecutar el proyecto:
     ```
     La aplicación se iniciará en `http://localhost:8080`.
 
-## 📖 Puntos de la API (Ejemplos)
+## Puntos de la API (Ejemplos)
 
 La API está estructurada por recursos para una fácil comprensión. Todos los endpoints requieren un token JWT en la cabecera `Authorization: Bearer <token>`, a excepción de `/api/auth/**`.
 
