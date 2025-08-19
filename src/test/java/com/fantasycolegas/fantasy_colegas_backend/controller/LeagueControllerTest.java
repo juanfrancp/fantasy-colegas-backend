@@ -128,8 +128,8 @@ public class LeagueControllerTest {
     @WithTestUser(id = MOCK_USER_ID)
     void getLeagueScoreboard_shouldReturnScoreboard_whenLeagueExists() throws Exception {
         List<UserScoreDto> scoreboard = new ArrayList<>();
-        scoreboard.add(new UserScoreDto(1L, 100.0));
-        scoreboard.add(new UserScoreDto(2L, 90.0));
+        scoreboard.add(new UserScoreDto(1L, "userOne", 100.0));
+        scoreboard.add(new UserScoreDto(2L, "userTwo", 90.0));
 
         when(leagueService.getLeagueScoreboard(MOCK_LEAGUE_ID)).thenReturn(scoreboard);
 
@@ -138,6 +138,7 @@ public class LeagueControllerTest {
                 .andExpect(jsonPath("$[0].userId", is(1)))
                 .andExpect(jsonPath("$[0].totalPoints", is(100.0)))
                 .andExpect(jsonPath("$[1].userId", is(2)))
+                .andExpect(jsonPath("$[0].username", is("userOne")))
                 .andExpect(jsonPath("$[1].totalPoints", is(90.0)));
     }
 
@@ -150,10 +151,7 @@ public class LeagueControllerTest {
 
         when(leagueService.getLeagueById(MOCK_LEAGUE_ID, MOCK_USER_ID)).thenReturn(leagueResponseDto);
 
-        mockMvc.perform(get("/api/leagues/" + MOCK_LEAGUE_ID))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id", is((int) MOCK_LEAGUE_ID)))
-                .andExpect(jsonPath("$.name", is("Test League")));
+        mockMvc.perform(get("/api/leagues/" + MOCK_LEAGUE_ID)).andExpect(status().isOk()).andExpect(jsonPath("$.id", is((int) MOCK_LEAGUE_ID))).andExpect(jsonPath("$.name", is("Test League")));
     }
 
     @Test
@@ -169,12 +167,7 @@ public class LeagueControllerTest {
 
         when(leagueService.createLeague(any(LeagueCreateDto.class), eq(MOCK_USER_ID))).thenReturn(leagueResponseDto);
 
-        mockMvc.perform(post("/api/leagues")
-                        .with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(leagueCreateDto)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.name", is("New League")));
+        mockMvc.perform(post("/api/leagues").with(csrf()).contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(leagueCreateDto))).andExpect(status().isCreated()).andExpect(jsonPath("$.name", is("New League")));
     }
 
     @Test
@@ -182,11 +175,7 @@ public class LeagueControllerTest {
         LeagueCreateDto leagueCreateDto = new LeagueCreateDto();
         leagueCreateDto.setName("New League");
 
-        mockMvc.perform(post("/api/leagues")
-                        .with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(leagueCreateDto)))
-                .andExpect(status().isUnauthorized());
+        mockMvc.perform(post("/api/leagues").with(csrf()).contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(leagueCreateDto))).andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -201,12 +190,7 @@ public class LeagueControllerTest {
 
         when(leagueService.joinLeague(eq("VALIDCODE"), eq(MOCK_USER_ID))).thenReturn(leagueResponseDto);
 
-        mockMvc.perform(post("/api/leagues/join")
-                        .with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(joinLeagueDto)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name", is("Joined League")));
+        mockMvc.perform(post("/api/leagues/join").with(csrf()).contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(joinLeagueDto))).andExpect(status().isOk()).andExpect(jsonPath("$.name", is("Joined League")));
     }
 
     @Test
@@ -215,14 +199,9 @@ public class LeagueControllerTest {
         JoinLeagueDto joinLeagueDto = new JoinLeagueDto();
         joinLeagueDto.setJoinCode("INVALIDCODE");
 
-        when(leagueService.joinLeague(eq("INVALIDCODE"), eq(MOCK_USER_ID)))
-                .thenThrow(new ResponseStatusException(BAD_REQUEST, "Invalid join code"));
+        when(leagueService.joinLeague(eq("INVALIDCODE"), eq(MOCK_USER_ID))).thenThrow(new ResponseStatusException(BAD_REQUEST, "Invalid join code"));
 
-        mockMvc.perform(post("/api/leagues/join")
-                        .with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(joinLeagueDto)))
-                .andExpect(status().isBadRequest());
+        mockMvc.perform(post("/api/leagues/join").with(csrf()).contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(joinLeagueDto))).andExpect(status().isBadRequest());
     }
 
     @Test
@@ -235,15 +214,9 @@ public class LeagueControllerTest {
         leagueResponseDto.setId(MOCK_LEAGUE_ID);
         leagueResponseDto.setTeamSize(10);
 
-        when(leagueService.updateLeagueTeamSize(eq(MOCK_LEAGUE_ID), any(LeagueTeamSizeUpdateDto.class), eq(MOCK_USER_ID)))
-                .thenReturn(leagueResponseDto);
+        when(leagueService.updateLeagueTeamSize(eq(MOCK_LEAGUE_ID), any(LeagueTeamSizeUpdateDto.class), eq(MOCK_USER_ID))).thenReturn(leagueResponseDto);
 
-        mockMvc.perform(patch("/api/leagues/" + MOCK_LEAGUE_ID + "/team-size")
-                        .with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(updateDto)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.teamSize", is(10)));
+        mockMvc.perform(patch("/api/leagues/" + MOCK_LEAGUE_ID + "/team-size").with(csrf()).contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(updateDto))).andExpect(status().isOk()).andExpect(jsonPath("$.teamSize", is(10)));
     }
 
     @Test
@@ -252,14 +225,9 @@ public class LeagueControllerTest {
         LeagueTeamSizeUpdateDto updateDto = new LeagueTeamSizeUpdateDto();
         updateDto.setTeamSize(10);
 
-        when(leagueService.updateLeagueTeamSize(eq(MOCK_LEAGUE_ID), any(LeagueTeamSizeUpdateDto.class), eq(2L)))
-                .thenThrow(new ResponseStatusException(HttpStatus.FORBIDDEN));
+        when(leagueService.updateLeagueTeamSize(eq(MOCK_LEAGUE_ID), any(LeagueTeamSizeUpdateDto.class), eq(2L))).thenThrow(new ResponseStatusException(HttpStatus.FORBIDDEN));
 
-        mockMvc.perform(patch("/api/leagues/" + MOCK_LEAGUE_ID + "/team-size")
-                        .with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(updateDto)))
-                .andExpect(status().isForbidden());
+        mockMvc.perform(patch("/api/leagues/" + MOCK_LEAGUE_ID + "/team-size").with(csrf()).contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(updateDto))).andExpect(status().isForbidden());
     }
 
     @Test
@@ -269,17 +237,13 @@ public class LeagueControllerTest {
 
         doNothing().when(leagueService).deleteLeague(MOCK_LEAGUE_ID, MOCK_USER_ID);
 
-        mockMvc.perform(delete("/api/leagues/" + MOCK_LEAGUE_ID)
-                        .with(csrf()))
-                .andExpect(status().isNoContent());
+        mockMvc.perform(delete("/api/leagues/" + MOCK_LEAGUE_ID).with(csrf())).andExpect(status().isNoContent());
     }
 
     @Test
     @WithTestUser(id = 2L)
     void deleteLeague_shouldReturnForbidden_whenUserIsNotAdmin() throws Exception {
-        mockMvc.perform(delete("/api/leagues/" + MOCK_LEAGUE_ID)
-                        .with(csrf()))
-                .andExpect(status().isForbidden());
+        mockMvc.perform(delete("/api/leagues/" + MOCK_LEAGUE_ID).with(csrf())).andExpect(status().isForbidden());
     }
 
     @Test
@@ -291,11 +255,7 @@ public class LeagueControllerTest {
         ChangeRoleDto changeRoleDto = new ChangeRoleDto();
         changeRoleDto.setNewRole(LeagueRole.ADMIN);
 
-        mockMvc.perform(patch("/api/leagues/" + MOCK_LEAGUE_ID + "/participants/" + TARGET_USER_ID + "/role")
-                        .with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(changeRoleDto)))
-                .andExpect(status().isOk());
+        mockMvc.perform(patch("/api/leagues/" + MOCK_LEAGUE_ID + "/participants/" + TARGET_USER_ID + "/role").with(csrf()).contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(changeRoleDto))).andExpect(status().isOk());
     }
 
     @Test
@@ -304,9 +264,7 @@ public class LeagueControllerTest {
         when(leagueService.checkIfUserIsAdmin(MOCK_LEAGUE_ID, MOCK_USER_ID)).thenReturn(true);
         doNothing().when(leagueService).expelUser(MOCK_LEAGUE_ID, MOCK_USER_ID, TARGET_USER_ID);
 
-        mockMvc.perform(delete("/api/leagues/" + MOCK_LEAGUE_ID + "/expel/" + TARGET_USER_ID)
-                        .with(csrf()))
-                .andExpect(status().isNoContent());
+        mockMvc.perform(delete("/api/leagues/" + MOCK_LEAGUE_ID + "/expel/" + TARGET_USER_ID).with(csrf())).andExpect(status().isNoContent());
     }
 
     @Test
@@ -314,9 +272,7 @@ public class LeagueControllerTest {
     void leaveLeague_shouldReturnNoContent_whenUserLeaves() throws Exception {
         doNothing().when(leagueService).leaveLeague(MOCK_LEAGUE_ID, MOCK_USER_ID);
 
-        mockMvc.perform(delete("/api/leagues/" + MOCK_LEAGUE_ID + "/leave")
-                        .with(csrf()))
-                .andExpect(status().isNoContent());
+        mockMvc.perform(delete("/api/leagues/" + MOCK_LEAGUE_ID + "/leave").with(csrf())).andExpect(status().isNoContent());
     }
 
     @Test
@@ -324,9 +280,7 @@ public class LeagueControllerTest {
     void sendJoinRequest_shouldReturnOk() throws Exception {
         doNothing().when(leagueService).sendJoinRequest(MOCK_LEAGUE_ID, MOCK_USER_ID);
 
-        mockMvc.perform(post("/api/leagues/" + MOCK_LEAGUE_ID + "/request-join")
-                        .with(csrf()))
-                .andExpect(status().isOk());
+        mockMvc.perform(post("/api/leagues/" + MOCK_LEAGUE_ID + "/request-join").with(csrf())).andExpect(status().isOk());
     }
 
     @Test
@@ -335,8 +289,7 @@ public class LeagueControllerTest {
         when(leagueService.checkIfUserIsAdmin(MOCK_LEAGUE_ID, MOCK_USER_ID)).thenReturn(true);
         when(leagueService.getPendingJoinRequests(MOCK_LEAGUE_ID)).thenReturn(new ArrayList<>());
 
-        mockMvc.perform(get("/api/leagues/" + MOCK_LEAGUE_ID + "/requests"))
-                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/leagues/" + MOCK_LEAGUE_ID + "/requests")).andExpect(status().isOk());
     }
 
     @Test
@@ -345,9 +298,7 @@ public class LeagueControllerTest {
         when(leagueService.checkIfUserIsAdmin(MOCK_LEAGUE_ID, MOCK_USER_ID)).thenReturn(true);
         doNothing().when(leagueService).acceptJoinRequest(REQUEST_ID);
 
-        mockMvc.perform(post("/api/leagues/" + MOCK_LEAGUE_ID + "/requests/" + REQUEST_ID + "/accept")
-                        .with(csrf()))
-                .andExpect(status().isOk());
+        mockMvc.perform(post("/api/leagues/" + MOCK_LEAGUE_ID + "/requests/" + REQUEST_ID + "/accept").with(csrf())).andExpect(status().isOk());
     }
 
     @Test
@@ -356,9 +307,7 @@ public class LeagueControllerTest {
         when(leagueService.checkIfUserIsAdmin(MOCK_LEAGUE_ID, MOCK_USER_ID)).thenReturn(true);
         doNothing().when(leagueService).rejectJoinRequest(REQUEST_ID);
 
-        mockMvc.perform(post("/api/leagues/" + MOCK_LEAGUE_ID + "/requests/" + REQUEST_ID + "/reject")
-                        .with(csrf()))
-                .andExpect(status().isOk());
+        mockMvc.perform(post("/api/leagues/" + MOCK_LEAGUE_ID + "/requests/" + REQUEST_ID + "/reject").with(csrf())).andExpect(status().isOk());
     }
 
     @Test
@@ -368,11 +317,7 @@ public class LeagueControllerTest {
         leagueCreateDto.setName("");
         leagueCreateDto.setTeamSize(5);
 
-        mockMvc.perform(post("/api/leagues")
-                        .with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(leagueCreateDto)))
-                .andExpect(status().isBadRequest());
+        mockMvc.perform(post("/api/leagues").with(csrf()).contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(leagueCreateDto))).andExpect(status().isBadRequest());
     }
 
     @Test
@@ -382,104 +327,82 @@ public class LeagueControllerTest {
         leagueCreateDto.setName("Test League");
         leagueCreateDto.setTeamSize(20);
 
-        mockMvc.perform(post("/api/leagues")
-                        .with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(leagueCreateDto)))
-                .andExpect(status().isBadRequest());
+        mockMvc.perform(post("/api/leagues").with(csrf()).contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(leagueCreateDto))).andExpect(status().isBadRequest());
     }
 
     @Test
     @WithTestUser(id = 3L)
     void getLeagueById_shouldReturnForbidden_whenUserIsNotMember() throws Exception {
-        when(leagueService.getLeagueById(MOCK_LEAGUE_ID, 3L))
-                .thenThrow(new ResponseStatusException(HttpStatus.FORBIDDEN));
+        when(leagueService.getLeagueById(MOCK_LEAGUE_ID, 3L)).thenThrow(new ResponseStatusException(HttpStatus.FORBIDDEN));
 
-        mockMvc.perform(get("/api/leagues/" + MOCK_LEAGUE_ID))
-                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/leagues/" + MOCK_LEAGUE_ID)).andExpect(status().isForbidden());
     }
 
     @Test
     @WithTestUser(id = MOCK_USER_ID)
     void changeUserRole_shouldReturnBadRequest_whenAdminChangesOwnRole() throws Exception {
         when(leagueService.checkIfUserIsAdmin(MOCK_LEAGUE_ID, MOCK_USER_ID)).thenReturn(true);
-        doThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "No puedes cambiar tu propio rol."))
-                .when(leagueService).changeUserRole(MOCK_LEAGUE_ID, MOCK_USER_ID, MOCK_USER_ID, LeagueRole.PARTICIPANT);
+        doThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "No puedes cambiar tu propio rol.")).when(leagueService).changeUserRole(MOCK_LEAGUE_ID, MOCK_USER_ID, MOCK_USER_ID, LeagueRole.PARTICIPANT);
 
         ChangeRoleDto changeRoleDto = new ChangeRoleDto();
         changeRoleDto.setNewRole(LeagueRole.PARTICIPANT);
 
-        mockMvc.perform(patch("/api/leagues/" + MOCK_LEAGUE_ID + "/participants/" + MOCK_USER_ID + "/role")
-                        .with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(changeRoleDto)))
-                .andExpect(status().isBadRequest());
+        mockMvc.perform(patch("/api/leagues/" + MOCK_LEAGUE_ID + "/participants/" + MOCK_USER_ID + "/role").with(csrf()).contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(changeRoleDto))).andExpect(status().isBadRequest());
     }
 
     @Test
     @WithTestUser(id = MOCK_USER_ID)
     void expelUser_shouldReturnBadRequest_whenAdminExpelsSelf() throws Exception {
         when(leagueService.checkIfUserIsAdmin(MOCK_LEAGUE_ID, MOCK_USER_ID)).thenReturn(true);
-        doThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "No puedes expulsarte a ti mismo."))
-                .when(leagueService).expelUser(MOCK_LEAGUE_ID, MOCK_USER_ID, MOCK_USER_ID);
+        doThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "No puedes expulsarte a ti mismo.")).when(leagueService).expelUser(MOCK_LEAGUE_ID, MOCK_USER_ID, MOCK_USER_ID);
 
-        mockMvc.perform(delete("/api/leagues/" + MOCK_LEAGUE_ID + "/expel/" + MOCK_USER_ID)
-                        .with(csrf()))
-                .andExpect(status().isBadRequest());
+        mockMvc.perform(delete("/api/leagues/" + MOCK_LEAGUE_ID + "/expel/" + MOCK_USER_ID).with(csrf())).andExpect(status().isBadRequest());
     }
 
     @Test
     @WithTestUser(id = MOCK_USER_ID)
     void sendJoinRequest_shouldReturnConflict_whenRequestIsAlreadyPending() throws Exception {
-        doThrow(new ResponseStatusException(HttpStatus.CONFLICT, "Ya tienes una solicitud pendiente."))
-                .when(leagueService).sendJoinRequest(MOCK_LEAGUE_ID, MOCK_USER_ID);
+        doThrow(new ResponseStatusException(HttpStatus.CONFLICT, "Ya tienes una solicitud pendiente.")).when(leagueService).sendJoinRequest(MOCK_LEAGUE_ID, MOCK_USER_ID);
 
-        mockMvc.perform(post("/api/leagues/" + MOCK_LEAGUE_ID + "/request-join")
-                        .with(csrf()))
-                .andExpect(status().isConflict());
+        mockMvc.perform(post("/api/leagues/" + MOCK_LEAGUE_ID + "/request-join").with(csrf())).andExpect(status().isConflict());
     }
 
     @Test
     @WithTestUser(id = MOCK_USER_ID)
     void getRosterByTeamId_shouldReturnRoster_whenUserIsMember() throws Exception {
-        when(leagueService.getRosterByTeamId(eq(MOCK_LEAGUE_ID), eq(TARGET_USER_ID), anyString()))
-                .thenReturn(new RosterResponseDto());
+        when(leagueService.getRosterByTeamId(eq(MOCK_LEAGUE_ID), eq(TARGET_USER_ID), anyString())).thenReturn(new RosterResponseDto());
 
-        mockMvc.perform(get("/api/leagues/" + MOCK_LEAGUE_ID + "/rosters/" + TARGET_USER_ID))
-                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/leagues/" + MOCK_LEAGUE_ID + "/rosters/" + TARGET_USER_ID)).andExpect(status().isOk());
     }
 
     @Test
     @WithTestUser(id = 3L)
     void getRosterByTeamId_shouldReturnForbidden_whenUserIsNotMember() throws Exception {
-        when(leagueService.getRosterByTeamId(eq(MOCK_LEAGUE_ID), eq(TARGET_USER_ID), anyString()))
-                .thenThrow(new ResponseStatusException(HttpStatus.FORBIDDEN));
+        when(leagueService.getRosterByTeamId(eq(MOCK_LEAGUE_ID), eq(TARGET_USER_ID), anyString())).thenThrow(new ResponseStatusException(HttpStatus.FORBIDDEN));
 
-        mockMvc.perform(get("/api/leagues/" + MOCK_LEAGUE_ID + "/rosters/" + TARGET_USER_ID))
-                .andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/leagues/" + MOCK_LEAGUE_ID + "/rosters/" + TARGET_USER_ID)).andExpect(status().isForbidden());
     }
 
     @Test
     @WithTestUser(id = MOCK_USER_ID)
     void getUserPointsInLeague_shouldReturnUserPoints() throws Exception {
-        UserScoreDto userScoreDto = new UserScoreDto(TARGET_USER_ID, 150.0);
+        UserScoreDto userScoreDto = new UserScoreDto(TARGET_USER_ID, "targetUser", 150.0);
+
         when(leagueService.getUserPointsInLeague(MOCK_LEAGUE_ID, TARGET_USER_ID)).thenReturn(userScoreDto);
 
         mockMvc.perform(get("/api/leagues/" + MOCK_LEAGUE_ID + "/users/" + TARGET_USER_ID + "/points"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.userId", is((int) TARGET_USER_ID)))
+                .andExpect(jsonPath("$.username", is("targetUser")))
                 .andExpect(jsonPath("$.totalPoints", is(150.0)));
     }
 
     @Test
     @WithTestUser(id = MOCK_USER_ID)
     void leaveLeague_shouldReturnBadRequest_whenLastAdminTriesToLeave() throws Exception {
-        doThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "No puedes abandonar la liga siendo el único administrador"))
-                .when(leagueService).leaveLeague(MOCK_LEAGUE_ID, MOCK_USER_ID);
+        doThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST, "No puedes abandonar la liga siendo el único administrador")).when(leagueService).leaveLeague(MOCK_LEAGUE_ID, MOCK_USER_ID);
 
-        mockMvc.perform(delete("/api/leagues/" + MOCK_LEAGUE_ID + "/leave")
-                        .with(csrf()))
-                .andExpect(status().isBadRequest());
+        mockMvc.perform(delete("/api/leagues/" + MOCK_LEAGUE_ID + "/leave").with(csrf())).andExpect(status().isBadRequest());
     }
 
     @Test
@@ -489,11 +412,7 @@ public class LeagueControllerTest {
         leagueCreateDto.setName("Test League");
         leagueCreateDto.setTeamSize(2);
 
-        mockMvc.perform(post("/api/leagues")
-                        .with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(leagueCreateDto)))
-                .andExpect(status().isBadRequest());
+        mockMvc.perform(post("/api/leagues").with(csrf()).contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(leagueCreateDto))).andExpect(status().isBadRequest());
     }
 
     @Test
@@ -505,11 +424,7 @@ public class LeagueControllerTest {
 
         when(leagueService.checkIfUserIsAdmin(MOCK_LEAGUE_ID, MOCK_USER_ID)).thenReturn(true);
 
-        mockMvc.perform(put("/api/leagues/" + MOCK_LEAGUE_ID)
-                        .with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(leagueCreateDto)))
-                .andExpect(status().isBadRequest());
+        mockMvc.perform(put("/api/leagues/" + MOCK_LEAGUE_ID).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(leagueCreateDto))).andExpect(status().isBadRequest());
     }
 
     @Test
@@ -524,12 +439,7 @@ public class LeagueControllerTest {
 
         when(leagueService.updateLeague(eq(MOCK_LEAGUE_ID), any(LeagueCreateDto.class))).thenReturn(responseDto);
 
-        mockMvc.perform(put("/api/leagues/" + MOCK_LEAGUE_ID)
-                        .with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(updateDto)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name", is("Nombre Actualizado")));
+        mockMvc.perform(put("/api/leagues/" + MOCK_LEAGUE_ID).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(updateDto))).andExpect(status().isOk()).andExpect(jsonPath("$.name", is("Nombre Actualizado")));
     }
 
     @Test
@@ -537,25 +447,42 @@ public class LeagueControllerTest {
     void acceptJoinRequest_shouldReturnForbidden_whenUserIsNotAdmin() throws Exception {
         when(leagueService.checkIfUserIsAdmin(MOCK_LEAGUE_ID, 2L)).thenReturn(false);
 
-        mockMvc.perform(post("/api/leagues/" + MOCK_LEAGUE_ID + "/requests/" + REQUEST_ID + "/accept")
-                        .with(csrf()))
-                .andExpect(status().isForbidden());
+        mockMvc.perform(post("/api/leagues/" + MOCK_LEAGUE_ID + "/requests/" + REQUEST_ID + "/accept").with(csrf())).andExpect(status().isForbidden());
     }
 
     @Test
     @WithTestUser(id = MOCK_USER_ID)
     void changeUserRole_shouldReturnNotFound_whenTargetUserIsNotInLeague() throws Exception {
         when(leagueService.checkIfUserIsAdmin(MOCK_LEAGUE_ID, MOCK_USER_ID)).thenReturn(true);
-        doThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "El usuario no es miembro de esta liga."))
-                .when(leagueService).changeUserRole(MOCK_LEAGUE_ID, MOCK_USER_ID, 99L, LeagueRole.ADMIN);
+        doThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "El usuario no es miembro de esta liga.")).when(leagueService).changeUserRole(MOCK_LEAGUE_ID, MOCK_USER_ID, 99L, LeagueRole.ADMIN);
 
         ChangeRoleDto changeRoleDto = new ChangeRoleDto();
         changeRoleDto.setNewRole(LeagueRole.ADMIN);
 
-        mockMvc.perform(patch("/api/leagues/" + MOCK_LEAGUE_ID + "/participants/99/role")
-                        .with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(changeRoleDto)))
-                .andExpect(status().isNotFound());
+        mockMvc.perform(patch("/api/leagues/" + MOCK_LEAGUE_ID + "/participants/99/role").with(csrf()).contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(changeRoleDto))).andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithTestUser(id = MOCK_USER_ID)
+    void getMyLeagues_shouldReturnLeaguesForAuthenticatedUser() throws Exception {
+        LeagueResponseDto league1 = new LeagueResponseDto();
+        league1.setId(1L);
+        league1.setName("Mi Liga 1");
+
+        LeagueResponseDto league2 = new LeagueResponseDto();
+        league2.setId(2L);
+        league2.setName("Mi Liga 2");
+
+        when(leagueService.getLeaguesByUserId(MOCK_USER_ID)).thenReturn(List.of(league1, league2));
+
+        mockMvc.perform(get("/api/leagues/my-leagues").with(csrf())).andExpect(status().isOk()).andExpect(jsonPath("$.length()", is(2))).andExpect(jsonPath("$[0].name", is("Mi Liga 1"))).andExpect(jsonPath("$[1].name", is("Mi Liga 2")));
+    }
+
+    @Test
+    @WithTestUser(id = MOCK_USER_ID)
+    void getMyLeagues_whenServiceThrowsNotFound_shouldReturnNotFoundStatus() throws Exception {
+        when(leagueService.getLeaguesByUserId(MOCK_USER_ID)).thenThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+
+        mockMvc.perform(get("/api/leagues/my-leagues").with(csrf())).andExpect(status().isNotFound());
     }
 }

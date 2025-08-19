@@ -67,8 +67,10 @@ public class LeagueService {
 
         List<UserScoreDto> scoreboard = new ArrayList<>();
         for (Long userId : userIds) {
+            User user = userRepository.findById(userId).orElse(null);
+            String username = (user != null) ? user.getUsername() : "Usuario Desconocido";
             double totalPoints = calculateUserPoints(leagueId, userId);
-            UserScoreDto userScore = new UserScoreDto(userId, totalPoints);
+            UserScoreDto userScore = new UserScoreDto(userId, username, totalPoints);
             scoreboard.add(userScore);
         }
 
@@ -84,8 +86,10 @@ public class LeagueService {
      * @return Un {@link UserScoreDto} con el ID del usuario y sus puntos totales.
      */
     public UserScoreDto getUserPointsInLeague(Long leagueId, Long userId) {
+        User user = userRepository.findById(userId).orElse(null);
+        String username = (user != null) ? user.getUsername() : "Usuario Desconocido";
         double totalPoints = calculateUserPoints(leagueId, userId);
-        return new UserScoreDto(userId, totalPoints);
+        return new UserScoreDto(userId, username, totalPoints);
     }
 
     /**
@@ -607,5 +611,22 @@ public class LeagueService {
      */
     public boolean isUserParticipant(Long leagueId, Long userId) {
         return userLeagueRoleRepository.existsByLeagueIdAndUserId(leagueId, userId);
+    }
+
+    /**
+     * Obtiene todas las ligas a las que pertenece un usuario.
+     *
+     * @param userId El ID del usuario.
+     * @return Una lista de {@link LeagueResponseDto} con las ligas del usuario.
+     */
+    @Transactional
+    public List<LeagueResponseDto> getLeaguesByUserId(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+
+        return user.getLeagueRoles().stream()
+                .map(UserLeagueRole::getLeague)
+                .map(this::mapToLeagueResponseDto)
+                .collect(Collectors.toList());
     }
 }

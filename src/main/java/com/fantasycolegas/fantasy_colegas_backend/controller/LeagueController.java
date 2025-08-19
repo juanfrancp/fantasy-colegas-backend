@@ -352,6 +352,18 @@ public class LeagueController {
     }
 
     /**
+     * Obtiene todas las ligas del usuario autenticado.
+     *
+     * @param currentUser El usuario autenticado.
+     * @return Una lista de {@link LeagueResponseDto}.
+     */
+    @GetMapping("/my-leagues")
+    public ResponseEntity<List<LeagueResponseDto>> getMyLeagues(@AuthenticationPrincipal CustomUserDetails currentUser) {
+        List<LeagueResponseDto> leagues = leagueService.getLeaguesByUserId(currentUser.getId());
+        return ResponseEntity.ok(leagues);
+    }
+
+    /**
      * Mapea un objeto {@link LeagueJoinRequest} a un {@link JoinRequestResponseDto}.
      *
      * @param request El objeto de solicitud de unión a la liga.

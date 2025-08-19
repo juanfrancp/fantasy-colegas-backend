@@ -20,7 +20,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserScoreDto {
-
     private Long userId;
+    private String username;
     private double totalPoints;
 }

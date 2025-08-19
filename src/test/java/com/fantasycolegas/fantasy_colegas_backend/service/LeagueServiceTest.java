@@ -13,9 +13,12 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -84,8 +87,7 @@ class LeagueServiceTest {
         Player playerInLeague = new Player();
         playerInLeague.setId(101L);
         playerInLeague.setName("Jugador de Prueba");
-        when(playerRepository.findByLeagueIdAndIsPlaceholderFalse(MOCKED_LEAGUE_ID))
-                .thenReturn(java.util.Collections.singletonList(playerInLeague));
+        when(playerRepository.findByLeagueIdAndIsPlaceholderFalse(MOCKED_LEAGUE_ID)).thenReturn(java.util.Collections.singletonList(playerInLeague));
 
         LeagueResponseDto result = leagueService.createLeague(leagueCreateDto, testUser.getId());
 
@@ -459,8 +461,7 @@ class LeagueServiceTest {
         when(leagueRepository.findById(leagueId)).thenReturn(Optional.of(privateLeague));
         when(userRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
         when(userLeagueRoleRepository.existsByLeagueIdAndUserId(leagueId, testUser.getId())).thenReturn(false);
-        when(leagueJoinRequestRepository.findByUserAndLeagueAndStatus(testUser, privateLeague, com.fantasycolegas.fantasy_colegas_backend.model.enums.RequestStatus.PENDING))
-                .thenReturn(Optional.of(new LeagueJoinRequest()));
+        when(leagueJoinRequestRepository.findByUserAndLeagueAndStatus(testUser, privateLeague, com.fantasycolegas.fantasy_colegas_backend.model.enums.RequestStatus.PENDING)).thenReturn(Optional.of(new LeagueJoinRequest()));
 
         assertThrows(ResponseStatusException.class, () -> {
             leagueService.sendJoinRequest(leagueId, testUser.getId());
@@ -527,6 +528,7 @@ class LeagueServiceTest {
         PlayerMatchStats stats2 = new PlayerMatchStats();
         stats2.setTotalGoalkeeperPoints(5.0);
 
+        when(userRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
         when(rosterPlayerRepository.findByUserIdAndLeagueId(testUser.getId(), leagueId)).thenReturn(java.util.Arrays.asList(rosterPlayer1, rosterPlayer2));
         when(playerMatchStatsRepository.findByPlayerId(player1.getId())).thenReturn(java.util.Collections.singletonList(stats1));
         when(playerMatchStatsRepository.findByPlayerId(player2.getId())).thenReturn(java.util.Collections.singletonList(stats2));
@@ -535,6 +537,42 @@ class LeagueServiceTest {
 
         assertNotNull(result);
         assertEquals(testUser.getId(), result.getUserId());
+        assertEquals(testUser.getUsername(), result.getUsername());
         assertEquals(25.0, result.getTotalPoints());
+    }
+
+    @Test
+    void getLeaguesByUserId_whenUserExists_shouldReturnLeagues() {
+        League league1 = new League();
+        league1.setId(101L);
+        league1.setName("Liga 1");
+
+        League league2 = new League();
+        league2.setId(102L);
+        league2.setName("Liga 2");
+
+        UserLeagueRole role1 = new UserLeagueRole(testUser, league1, LeagueRole.PARTICIPANT);
+        UserLeagueRole role2 = new UserLeagueRole(testUser, league2, LeagueRole.ADMIN);
+
+        testUser.setLeagueRoles(Set.of(role1, role2));
+
+        when(userRepository.findById(testUser.getId())).thenReturn(Optional.of(testUser));
+
+        List<LeagueResponseDto> result = leagueService.getLeaguesByUserId(testUser.getId());
+
+        assertNotNull(result);
+        assertEquals(2, result.size());
+        assertTrue(result.stream().anyMatch(l -> l.getName().equals("Liga 1")));
+        assertTrue(result.stream().anyMatch(l -> l.getName().equals("Liga 2")));
+    }
+
+    @Test
+    void getLeaguesByUserId_whenUserDoesNotExist_shouldThrowNotFoundException() {
+        long nonExistentUserId = 999L;
+        when(userRepository.findById(nonExistentUserId)).thenReturn(Optional.empty());
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> leagueService.getLeaguesByUserId(nonExistentUserId));
+
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
     }
 }
