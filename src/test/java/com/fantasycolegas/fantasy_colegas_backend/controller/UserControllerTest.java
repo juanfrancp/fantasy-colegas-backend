@@ -109,6 +109,7 @@ class UserControllerTest {
     @Test
     @WithAnonymousUser
     void endpoints_whenNotAuthenticated_shouldReturnUnauthorized() throws Exception {
+        mockMvc.perform(get("/api/users/me")).andExpect(status().isUnauthorized());
         mockMvc.perform(get("/api/users/" + MOCK_USER_ID)).andExpect(status().isUnauthorized());
         mockMvc.perform(put("/api/users/" + MOCK_USER_ID).with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{}")).andExpect(status().isUnauthorized());
         mockMvc.perform(put("/api/users/" + MOCK_USER_ID + "/password").with(csrf()).contentType(MediaType.APPLICATION_JSON).content("{}")).andExpect(status().isUnauthorized());
@@ -250,5 +251,31 @@ class UserControllerTest {
         doThrow(new ResponseStatusException(HttpStatus.NOT_FOUND)).when(userService).deleteUser(MOCK_USER_ID);
 
         mockMvc.perform(delete("/api/users/" + MOCK_USER_ID).with(csrf())).andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithTestUser(id = MOCK_USER_ID)
+    void getCurrentUser_whenAuthenticated_shouldReturnUserData() throws Exception {
+        User testUser = new User();
+        testUser.setId(MOCK_USER_ID);
+        testUser.setUsername("testuser");
+        testUser.setProfileImageUrl("https://example.com/profile.png");
+
+        when(userService.getUserById(MOCK_USER_ID)).thenReturn(Optional.of(testUser));
+
+        mockMvc.perform(get("/api/users/me"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id", is((int) MOCK_USER_ID)))
+                .andExpect(jsonPath("$.username", is("testuser")))
+                .andExpect(jsonPath("$.profileImageUrl", is("https://example.com/profile.png")));
+    }
+
+    @Test
+    @WithTestUser(id = MOCK_USER_ID)
+    void getCurrentUser_whenUserNotFoundInService_shouldReturnNotFound() throws Exception {
+        when(userService.getUserById(MOCK_USER_ID)).thenReturn(Optional.empty());
+
+        mockMvc.perform(get("/api/users/me"))
+                .andExpect(status().isNotFound());
     }
 }

@@ -2,12 +2,15 @@ package com.fantasycolegas.fantasy_colegas_backend.controller;
 
 import com.fantasycolegas.fantasy_colegas_backend.dto.request.PasswordUpdateDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.request.UserUpdateDto;
+import com.fantasycolegas.fantasy_colegas_backend.dto.response.UserResponseDto;
 import com.fantasycolegas.fantasy_colegas_backend.model.User;
+import com.fantasycolegas.fantasy_colegas_backend.security.CustomUserDetails;
 import com.fantasycolegas.fantasy_colegas_backend.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 
@@ -47,5 +50,14 @@ public class UserController {
     public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
         userService.deleteUser(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/me")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<UserResponseDto> getCurrentUser(@AuthenticationPrincipal CustomUserDetails currentUser) {
+        return userService.getUserById(currentUser.getId())
+                .map(user -> new UserResponseDto(user.getId(), user.getUsername(), user.getProfileImageUrl()))
+                .map(ResponseEntity::ok)
+                .orElseGet(() -> ResponseEntity.notFound().build());
     }
 }
