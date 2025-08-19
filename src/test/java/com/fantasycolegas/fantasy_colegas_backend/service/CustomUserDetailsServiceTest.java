@@ -73,11 +73,16 @@ class CustomUserDetailsServiceTest {
     @Test
     void loadUserByUsername_shouldReturnUserDetails_whenUsernameHasDifferentCase() {
         String inputUsername = "TestUser";
-        when(userRepository.findByUsernameOrEmail(inputUsername, inputUsername)).thenReturn(Optional.of(testUser));
+        String lowerCaseUsername = inputUsername.toLowerCase();
+
+        when(userRepository.findByUsernameOrEmail(lowerCaseUsername, lowerCaseUsername)).thenReturn(Optional.of(testUser));
+
         UserDetails userDetails = customUserDetailsService.loadUserByUsername(inputUsername);
+
         assertNotNull(userDetails);
         assertEquals(MOCK_USERNAME, userDetails.getUsername());
     }
+
     @Test
     void loadUserByUsername_shouldReturnUserDetailsWithCorrectRoles() {
         when(userRepository.findByUsernameOrEmail(MOCK_USERNAME, MOCK_USERNAME)).thenReturn(Optional.of(testUser));
