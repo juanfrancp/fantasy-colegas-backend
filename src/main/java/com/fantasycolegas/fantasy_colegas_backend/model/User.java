@@ -36,6 +36,9 @@ public class User {
     @Column(nullable = false)
     private String password;
 
+    @Column(name = "profile_image_url")
+    private String profileImageUrl;
+
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private Set<UserLeagueRole> leagueRoles = new HashSet<>();
 

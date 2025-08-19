@@ -80,6 +80,7 @@ public class AuthService {
         user.setUsername(usernameLowerCase);
         user.setEmail(emailLowerCase);
         user.setPassword(passwordEncoder.encode(registerDto.getPassword()));
+        user.setProfileImageUrl("https://example.com/default-profile.png");
 
         try {
             userRepository.save(user);

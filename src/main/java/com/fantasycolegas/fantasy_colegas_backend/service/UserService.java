@@ -50,6 +50,10 @@ public class UserService {
             user.setUsername(userUpdateDto.getUsername());
         }
 
+        if (userUpdateDto.getProfileImageUrl() != null && !userUpdateDto.getProfileImageUrl().isBlank()) {
+            user.setProfileImageUrl(userUpdateDto.getProfileImageUrl());
+        }
+
         return userRepository.save(user);
     }
 
