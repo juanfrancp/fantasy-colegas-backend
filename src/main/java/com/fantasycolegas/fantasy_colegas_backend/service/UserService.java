@@ -2,11 +2,15 @@ package com.fantasycolegas.fantasy_colegas_backend.service;
 
 import com.fantasycolegas.fantasy_colegas_backend.dto.request.PasswordUpdateDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.request.UserUpdateDto;
+import com.fantasycolegas.fantasy_colegas_backend.dto.response.UserResponseDto;
+import com.fantasycolegas.fantasy_colegas_backend.dto.response.UserUpdateResponseDto;
 import com.fantasycolegas.fantasy_colegas_backend.model.User;
 import com.fantasycolegas.fantasy_colegas_backend.repository.UserRepository;
+import com.fantasycolegas.fantasy_colegas_backend.util.JwtUtil;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
@@ -18,6 +22,12 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private CustomUserDetailsService userDetailsService;
+
+    @Autowired
+    private JwtUtil jwtUtil;
 
     @Autowired
     public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
@@ -84,5 +94,41 @@ public class UserService {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado");
         }
         userRepository.deleteById(id);
+    }
+
+    public User updateUserByUsername(String username, UserUpdateDto userUpdateDto) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+
+        if (userUpdateDto.getUsername() != null && !userUpdateDto.getUsername().equals(user.getUsername())) {
+            if (userRepository.findByUsername(userUpdateDto.getUsername()).isPresent()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El nombre de usuario ya está en uso");
+            }
+            user.setUsername(userUpdateDto.getUsername());
+        }
+
+        if (userUpdateDto.getEmail() != null && !userUpdateDto.getEmail().equals(user.getEmail())) {
+            if (userRepository.findByEmail(userUpdateDto.getEmail()).isPresent()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El email ya está en uso");
+            }
+            user.setEmail(userUpdateDto.getEmail());
+        }
+
+        return userRepository.save(user);
+    }
+
+    public UserUpdateResponseDto updateUserAndGenerateNewToken(String currentUsername, UserUpdateDto userUpdateDto) {
+        User updatedUser = this.updateUserByUsername(currentUsername, userUpdateDto);
+
+        UserResponseDto userDto = new UserResponseDto();
+        userDto.setId(updatedUser.getId());
+        userDto.setUsername(updatedUser.getUsername());
+        userDto.setEmail(updatedUser.getEmail());
+        userDto.setProfileImageUrl(updatedUser.getProfileImageUrl());
+
+        final UserDetails userDetails = userDetailsService.loadUserByUsername(updatedUser.getUsername());
+        String newJwt = jwtUtil.generateToken(userDetails);
+
+        return new UserUpdateResponseDto(userDto, newJwt);
     }
 }

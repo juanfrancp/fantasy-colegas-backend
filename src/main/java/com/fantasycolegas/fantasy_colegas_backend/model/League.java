@@ -1,5 +1,6 @@
 package com.fantasycolegas.fantasy_colegas_backend.model;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -43,6 +44,7 @@ public class League {
     private int teamSize;
 
     @OneToMany(mappedBy = "league", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
     private Set<UserLeagueRole> userRoles = new HashSet<>();
 
     @OneToMany(mappedBy = "league", cascade = CascadeType.ALL, orphanRemoval = true)

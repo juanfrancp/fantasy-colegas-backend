@@ -1,5 +1,6 @@
 package com.fantasycolegas.fantasy_colegas_backend.model;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -40,6 +41,7 @@ public class User {
     private String profileImageUrl;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference
     private Set<UserLeagueRole> leagueRoles = new HashSet<>();
 
     @Override

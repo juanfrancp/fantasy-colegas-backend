@@ -29,4 +29,6 @@ public class UserUpdateDto {
     private String password;
 
     private String profileImageUrl;
+
+    private String newJwt;
 }

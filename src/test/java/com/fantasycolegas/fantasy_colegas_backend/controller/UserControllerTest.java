@@ -3,6 +3,8 @@ package com.fantasycolegas.fantasy_colegas_backend.controller;
 import com.fantasycolegas.fantasy_colegas_backend.config.SecurityConfiguration;
 import com.fantasycolegas.fantasy_colegas_backend.dto.request.PasswordUpdateDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.request.UserUpdateDto;
+import com.fantasycolegas.fantasy_colegas_backend.dto.response.UserResponseDto;
+import com.fantasycolegas.fantasy_colegas_backend.dto.response.UserUpdateResponseDto;
 import com.fantasycolegas.fantasy_colegas_backend.model.User;
 import com.fantasycolegas.fantasy_colegas_backend.repository.UserRepository;
 import com.fantasycolegas.fantasy_colegas_backend.security.CustomUserDetails;
@@ -118,16 +120,6 @@ class UserControllerTest {
 
     @Test
     @WithTestUser(id = MOCK_USER_ID)
-    void updateUser_whenUpdatingAnotherUser_shouldReturnForbidden() throws Exception {
-        UserUpdateDto updateDto = new UserUpdateDto();
-        updateDto.setUsername("hacker");
-        updateDto.setEmail("hacker@example.com");
-
-        mockMvc.perform(put("/api/users/" + ANOTHER_USER_ID).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(updateDto))).andExpect(status().isForbidden());
-    }
-
-    @Test
-    @WithTestUser(id = MOCK_USER_ID)
     void updatePassword_whenUpdatingAnotherUser_shouldReturnForbidden() throws Exception {
         PasswordUpdateDto passwordDto = new PasswordUpdateDto();
         passwordDto.setOldPassword("oldPassword123");
@@ -160,44 +152,6 @@ class UserControllerTest {
         when(userService.getUserById(MOCK_USER_ID)).thenReturn(Optional.empty());
 
         mockMvc.perform(get("/api/users/" + MOCK_USER_ID)).andExpect(status().isNotFound());
-    }
-
-    @Test
-    @WithTestUser(id = MOCK_USER_ID)
-    void updateUser_whenRequestIsValid_shouldReturnOk() throws Exception {
-        UserUpdateDto updateDto = new UserUpdateDto();
-        updateDto.setUsername("newuser");
-        updateDto.setEmail("new@example.com");
-
-        User updatedUser = new User();
-        updatedUser.setId(MOCK_USER_ID);
-        updatedUser.setUsername("newuser");
-
-        when(userService.updateUser(eq(MOCK_USER_ID), any(UserUpdateDto.class))).thenReturn(updatedUser);
-
-        mockMvc.perform(put("/api/users/" + MOCK_USER_ID).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(updateDto))).andExpect(status().isOk()).andExpect(jsonPath("$.username", is("newuser")));
-    }
-
-    @Test
-    @WithTestUser(id = MOCK_USER_ID)
-    void updateUser_whenServiceThrowsNotFound_shouldReturnNotFound() throws Exception {
-        UserUpdateDto updateDto = new UserUpdateDto();
-        updateDto.setUsername("newuser");
-        updateDto.setEmail("new@example.com");
-
-        when(userService.updateUser(eq(MOCK_USER_ID), any(UserUpdateDto.class))).thenThrow(new ResponseStatusException(HttpStatus.NOT_FOUND));
-
-        mockMvc.perform(put("/api/users/" + MOCK_USER_ID).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(updateDto))).andExpect(status().isNotFound());
-    }
-
-    @Test
-    @WithTestUser(id = MOCK_USER_ID)
-    void updateUser_withInvalidDto_shouldReturnBadRequest() throws Exception {
-        UserUpdateDto invalidDto = new UserUpdateDto();
-        invalidDto.setUsername("");
-        invalidDto.setEmail("not-an-email");
-
-        mockMvc.perform(put("/api/users/" + MOCK_USER_ID).with(csrf()).contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(invalidDto))).andExpect(status().isBadRequest());
     }
 
     @Test
@@ -259,6 +213,7 @@ class UserControllerTest {
         User testUser = new User();
         testUser.setId(MOCK_USER_ID);
         testUser.setUsername("testuser");
+        testUser.setEmail("test@example.com");
         testUser.setProfileImageUrl("https://example.com/profile.png");
 
         when(userService.getUserById(MOCK_USER_ID)).thenReturn(Optional.of(testUser));
@@ -267,6 +222,7 @@ class UserControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id", is((int) MOCK_USER_ID)))
                 .andExpect(jsonPath("$.username", is("testuser")))
+                .andExpect(jsonPath("$.email", is("test@example.com")))
                 .andExpect(jsonPath("$.profileImageUrl", is("https://example.com/profile.png")));
     }
 
@@ -277,5 +233,46 @@ class UserControllerTest {
 
         mockMvc.perform(get("/api/users/me"))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithTestUser(id = MOCK_USER_ID, username = "testuser")
+    void updateCurrentUserProfile_whenRequestIsValid_shouldReturnOk() throws Exception {
+        UserUpdateDto updateDto = new UserUpdateDto();
+        updateDto.setUsername("newuser");
+        updateDto.setEmail("new@example.com");
+
+        UserResponseDto userDto = new UserResponseDto();
+        userDto.setId(MOCK_USER_ID);
+        userDto.setUsername("newuser");
+        userDto.setEmail("new@example.com");
+
+        UserUpdateResponseDto serviceResponse = new UserUpdateResponseDto(userDto, "fake-new-jwt-for-test");
+
+        when(userService.updateUserAndGenerateNewToken(eq("testuser"), any(UserUpdateDto.class)))
+                .thenReturn(serviceResponse);
+
+        mockMvc.perform(put("/api/users/me")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateDto)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.user.username", is("newuser")))
+                .andExpect(jsonPath("$.user.email", is("new@example.com")))
+                .andExpect(jsonPath("$.newJwt", is("fake-new-jwt-for-test")));
+    }
+
+    @Test
+    @WithAnonymousUser
+    void updateCurrentUserProfile_whenNotAuthenticated_shouldReturnUnauthorized() throws Exception {
+        UserUpdateDto updateDto = new UserUpdateDto();
+        updateDto.setUsername("newuser");
+        updateDto.setEmail("new@example.com");
+
+        mockMvc.perform(put("/api/users/me")
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updateDto)))
+                .andExpect(status().isUnauthorized());
     }
 }

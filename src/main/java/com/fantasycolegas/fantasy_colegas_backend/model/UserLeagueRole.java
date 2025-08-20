@@ -1,6 +1,7 @@
 package com.fantasycolegas.fantasy_colegas_backend.model;
 
 import com.fantasycolegas.fantasy_colegas_backend.model.enums.LeagueRole;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -33,11 +34,13 @@ public class UserLeagueRole implements Serializable {
     @ManyToOne(fetch = FetchType.LAZY)
     @MapsId("userId")
     @JoinColumn(name = "user_id")
+    @JsonManagedReference
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @MapsId("leagueId")
     @JoinColumn(name = "league_id")
+    @JsonManagedReference
     private League league;
 
     @Enumerated(EnumType.STRING)

@@ -3,14 +3,19 @@ package com.fantasycolegas.fantasy_colegas_backend.controller;
 import com.fantasycolegas.fantasy_colegas_backend.dto.request.PasswordUpdateDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.request.UserUpdateDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.response.UserResponseDto;
+import com.fantasycolegas.fantasy_colegas_backend.dto.response.UserUpdateResponseDto;
 import com.fantasycolegas.fantasy_colegas_backend.model.User;
 import com.fantasycolegas.fantasy_colegas_backend.security.CustomUserDetails;
 import com.fantasycolegas.fantasy_colegas_backend.service.UserService;
+import com.fantasycolegas.fantasy_colegas_backend.util.JwtUtil;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.web.bind.annotation.*;
 
 
@@ -18,7 +23,14 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/users")
 public class UserController {
 
+    @Autowired
     private final UserService userService;
+
+    @Autowired
+    private JwtUtil jwtUtil;
+
+    @Autowired
+    private UserDetailsService userDetailsService;
 
     @Autowired
     public UserController(UserService userService) {
@@ -31,18 +43,11 @@ public class UserController {
         return userService.getUserById(id).map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
     }
 
-    @PutMapping("/{id}")
-    @PreAuthorize("isAuthenticated() and #id == principal.id")
-    public ResponseEntity<User> updateUser(@PathVariable Long id, @Valid @RequestBody UserUpdateDto userUpdateDto) {
-        User updatedUser = userService.updateUser(id, userUpdateDto);
-        return ResponseEntity.ok(updatedUser);
-    }
-
     @PutMapping("/{id}/password")
     @PreAuthorize("isAuthenticated() and #id == principal.id")
-    public ResponseEntity<User> updatePassword(@PathVariable Long id, @Valid @RequestBody PasswordUpdateDto passwordUpdateDto) {
+    public ResponseEntity<Void> updatePassword(@PathVariable Long id, @Valid @RequestBody PasswordUpdateDto passwordUpdateDto) {
         User updatedUser = userService.updatePassword(id, passwordUpdateDto);
-        return ResponseEntity.ok(updatedUser);
+        return ResponseEntity.ok().build();
     }
 
     @DeleteMapping("/{id}")
@@ -56,8 +61,17 @@ public class UserController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<UserResponseDto> getCurrentUser(@AuthenticationPrincipal CustomUserDetails currentUser) {
         return userService.getUserById(currentUser.getId())
-                .map(user -> new UserResponseDto(user.getId(), user.getUsername(), user.getProfileImageUrl()))
+                .map(user -> new UserResponseDto(user.getId(), user.getUsername(), user.getEmail(), user.getProfileImageUrl()))
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @PutMapping("/me")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<UserUpdateResponseDto> updateCurrentUserProfile(@RequestBody @Valid UserUpdateDto userUpdateDto, Authentication authentication) {
+        String currentUsername = authentication.getName();
+        UserUpdateResponseDto response = userService.updateUserAndGenerateNewToken(currentUsername, userUpdateDto);
+
+        return ResponseEntity.ok(response);
     }
 }
