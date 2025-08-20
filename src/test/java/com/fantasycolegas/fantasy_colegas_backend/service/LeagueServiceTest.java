@@ -575,4 +575,81 @@ class LeagueServiceTest {
 
         assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
     }
+
+    @Test
+    void getPublicLeagues_shouldReturnOnlyPublicLeagues() {
+        League publicLeague1 = new League();
+        publicLeague1.setId(1L);
+        publicLeague1.setName("Liga Pública 1");
+        publicLeague1.setPrivate(false);
+
+        League publicLeague2 = new League();
+        publicLeague2.setId(2L);
+        publicLeague2.setName("Liga Pública 2");
+        publicLeague2.setPrivate(false);
+
+        when(leagueRepository.findAllByIsPrivateFalse()).thenReturn(List.of(publicLeague1, publicLeague2));
+
+        List<LeagueResponseDto> result = leagueService.getPublicLeagues();
+
+        assertNotNull(result);
+        assertEquals(2, result.size());
+        verify(leagueRepository, times(1)).findAllByIsPrivateFalse();
+    }
+
+    @Test
+    void searchLeaguesByName_whenNameIsValid_shouldReturnMatchingLeagues() {
+        String searchTerm = "profesional";
+        League league1 = new League();
+        league1.setId(1L);
+        league1.setName("Liga Profesional de Test");
+
+        when(leagueRepository.findByNameContainingIgnoreCase(searchTerm)).thenReturn(List.of(league1));
+
+        List<LeagueResponseDto> result = leagueService.searchLeaguesByName(searchTerm);
+
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        assertEquals("Liga Profesional de Test", result.get(0).getName());
+        verify(leagueRepository, times(1)).findByNameContainingIgnoreCase(searchTerm);
+    }
+
+    @Test
+    void searchLeaguesByName_whenNameIsEmpty_shouldReturnEmptyList() {
+        List<LeagueResponseDto> result = leagueService.searchLeaguesByName("  ");
+
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+        verify(leagueRepository, never()).findByNameContainingIgnoreCase(anyString());
+    }
+
+    @Test
+    void getLeagueByJoinCode_whenCodeExists_shouldReturnLeague() {
+        String validCode = "VALID123";
+        League league = new League();
+        league.setId(1L);
+        league.setName("Liga por Código");
+        league.setJoinCode(validCode);
+
+        when(leagueRepository.findByJoinCode(validCode)).thenReturn(Optional.of(league));
+
+        LeagueResponseDto result = leagueService.getLeagueByJoinCode(validCode);
+
+        assertNotNull(result);
+        assertEquals(league.getId(), result.getId());
+        assertEquals(league.getName(), result.getName());
+        verify(leagueRepository, times(1)).findByJoinCode(validCode);
+    }
+
+    @Test
+    void getLeagueByJoinCode_whenCodeDoesNotExist_shouldThrowNotFoundException() {
+        String invalidCode = "INVALID456";
+        when(leagueRepository.findByJoinCode(invalidCode)).thenReturn(Optional.empty());
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> leagueService.getLeagueByJoinCode(invalidCode));
+
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+        verify(leagueRepository, times(1)).findByJoinCode(invalidCode);
+    }
 }

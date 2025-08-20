@@ -4,6 +4,7 @@ import com.fantasycolegas.fantasy_colegas_backend.model.League;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -27,5 +28,9 @@ public interface LeagueRepository extends JpaRepository<League, Long> {
      * @return Un objeto {@link Optional} que puede contener la liga encontrada.
      */
     Optional<League> findByJoinCode(String joinCode);
+
+    List<League> findByNameContainingIgnoreCase(String name);
+
+    List<League> findAllByIsPrivateFalse();
 
 }

@@ -629,4 +629,28 @@ public class LeagueService {
                 .map(this::mapToLeagueResponseDto)
                 .collect(Collectors.toList());
     }
+
+    @Transactional
+    public List<LeagueResponseDto> getPublicLeagues() {
+        return leagueRepository.findAllByIsPrivateFalse().stream()
+                .map(this::mapToLeagueResponseDto)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public List<LeagueResponseDto> searchLeaguesByName(String name) {
+        if (name == null || name.trim().isEmpty()) {
+            return Collections.emptyList();
+        }
+        return leagueRepository.findByNameContainingIgnoreCase(name).stream()
+                .map(this::mapToLeagueResponseDto)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public LeagueResponseDto getLeagueByJoinCode(String joinCode) {
+        League league = leagueRepository.findByJoinCode(joinCode)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Liga no encontrada con ese código."));
+        return mapToLeagueResponseDto(league);
+    }
 }

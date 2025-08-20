@@ -363,6 +363,28 @@ public class LeagueController {
         return ResponseEntity.ok(leagues);
     }
 
+    @GetMapping("/public")
+    public ResponseEntity<List<LeagueResponseDto>> getPublicLeagues() {
+        List<LeagueResponseDto> publicLeagues = leagueService.getPublicLeagues();
+        return ResponseEntity.ok(publicLeagues);
+    }
+
+    @GetMapping("/search/name")
+    public ResponseEntity<List<LeagueResponseDto>> searchLeaguesByName(@RequestParam String name) {
+        List<LeagueResponseDto> leagues = leagueService.searchLeaguesByName(name);
+        return ResponseEntity.ok(leagues);
+    }
+
+    @GetMapping("/search/code")
+    public ResponseEntity<?> getLeagueByJoinCode(@RequestParam String code) {
+        try {
+            LeagueResponseDto league = leagueService.getLeagueByJoinCode(code);
+            return ResponseEntity.ok(league);
+        } catch (ResponseStatusException e) {
+            return ResponseEntity.status(e.getStatusCode()).body(new ErrorResponse(e.getReason()));
+        }
+    }
+
     /**
      * Mapea un objeto {@link LeagueJoinRequest} a un {@link JoinRequestResponseDto}.
      *

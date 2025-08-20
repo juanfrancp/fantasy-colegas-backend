@@ -485,4 +485,78 @@ public class LeagueControllerTest {
 
         mockMvc.perform(get("/api/leagues/my-leagues").with(csrf())).andExpect(status().isNotFound());
     }
+
+    @Test
+    @WithTestUser(id = MOCK_USER_ID)
+    void getPublicLeagues_shouldReturnListOfPublicLeagues() throws Exception {
+        LeagueResponseDto publicLeague = new LeagueResponseDto();
+        publicLeague.setId(10L);
+        publicLeague.setName("Liga Pública de Verano");
+        when(leagueService.getPublicLeagues()).thenReturn(List.of(publicLeague));
+
+        mockMvc.perform(get("/api/leagues/public"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()", is(1)))
+                .andExpect(jsonPath("$[0].name", is("Liga Pública de Verano")));
+
+        verify(leagueService, times(1)).getPublicLeagues();
+    }
+
+    @Test
+    @WithTestUser(id = MOCK_USER_ID)
+    void searchLeaguesByName_whenNameProvided_shouldReturnMatchingLeagues() throws Exception {
+        String searchTerm = "MiLiga";
+        LeagueResponseDto foundLeague = new LeagueResponseDto();
+        foundLeague.setId(11L);
+        foundLeague.setName("MiLiga de Fantasía");
+        when(leagueService.searchLeaguesByName(searchTerm)).thenReturn(List.of(foundLeague));
+
+        mockMvc.perform(get("/api/leagues/search/name")
+                        .param("name", searchTerm))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()", is(1)))
+                .andExpect(jsonPath("$[0].name", is("MiLiga de Fantasía")));
+
+        verify(leagueService, times(1)).searchLeaguesByName(searchTerm);
+    }
+
+    @Test
+    @WithTestUser(id = MOCK_USER_ID)
+    void searchLeaguesByName_whenNameIsMissing_shouldReturnBadRequest() throws Exception {
+        mockMvc.perform(get("/api/leagues/search/name"))
+                .andExpect(status().isBadRequest());
+        verify(leagueService, never()).searchLeaguesByName(anyString());
+    }
+
+    @Test
+    @WithTestUser(id = MOCK_USER_ID)
+    void getLeagueByJoinCode_whenCodeExists_shouldReturnLeague() throws Exception {
+        String joinCode = "CODE123";
+        LeagueResponseDto foundLeague = new LeagueResponseDto();
+        foundLeague.setId(12L);
+        foundLeague.setName("Liga por Código");
+        when(leagueService.getLeagueByJoinCode(joinCode)).thenReturn(foundLeague);
+
+        mockMvc.perform(get("/api/leagues/search/code")
+                        .param("code", joinCode))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id", is(12)))
+                .andExpect(jsonPath("$.name", is("Liga por Código")));
+
+        verify(leagueService, times(1)).getLeagueByJoinCode(joinCode);
+    }
+
+    @Test
+    @WithTestUser(id = MOCK_USER_ID)
+    void getLeagueByJoinCode_whenCodeNotFound_shouldReturnNotFound() throws Exception {
+        String invalidCode = "NONEXISTENT";
+        when(leagueService.getLeagueByJoinCode(invalidCode))
+                .thenThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "Liga no encontrada"));
+
+        mockMvc.perform(get("/api/leagues/search/code")
+                        .param("code", invalidCode))
+                .andExpect(status().isNotFound());
+
+        verify(leagueService, times(1)).getLeagueByJoinCode(invalidCode);
+    }
 }
