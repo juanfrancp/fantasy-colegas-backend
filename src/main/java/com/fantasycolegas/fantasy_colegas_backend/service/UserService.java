@@ -13,8 +13,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.io.File;
 import java.util.Optional;
 
 @Service
@@ -22,17 +24,17 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final CustomUserDetailsService userDetailsService;
+    private final JwtUtil jwtUtil;
+    private final FileStorageService fileStorageService;
 
     @Autowired
-    private CustomUserDetailsService userDetailsService;
-
-    @Autowired
-    private JwtUtil jwtUtil;
-
-    @Autowired
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, CustomUserDetailsService userDetailsService, JwtUtil jwtUtil, FileStorageService fileStorageService) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.userDetailsService = userDetailsService;
+        this.jwtUtil = jwtUtil;
+        this.fileStorageService = fileStorageService;
     }
 
     public Optional<User> getUserById(Long id) {
@@ -130,5 +132,33 @@ public class UserService {
         String newJwt = jwtUtil.generateToken(userDetails);
 
         return new UserUpdateResponseDto(userDto, newJwt);
+    }
+
+    public UserResponseDto updateUserProfileImage(String username, MultipartFile file) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+
+        String fileName = fileStorageService.storeFile(file, "profile-pics");
+        String fileDownloadUri = "/uploads/profile-pics/" + fileName;
+
+        user.setProfileImageUrl(fileDownloadUri);
+        User updatedUser = userRepository.save(user);
+
+        UserResponseDto responseDto = new UserResponseDto();
+        responseDto.setId(updatedUser.getId());
+        responseDto.setUsername(updatedUser.getUsername());
+        responseDto.setEmail(updatedUser.getEmail());
+        responseDto.setProfileImageUrl(updatedUser.getProfileImageUrl());
+
+        return responseDto;
+    }
+
+    public User updateProfileImage(String username, String imageUrl) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+
+        user.setProfileImageUrl(imageUrl);
+
+        return userRepository.save(user);
     }
 }

@@ -9,6 +9,7 @@ import com.fantasycolegas.fantasy_colegas_backend.model.User;
 import com.fantasycolegas.fantasy_colegas_backend.repository.UserRepository;
 import com.fantasycolegas.fantasy_colegas_backend.security.CustomUserDetails;
 import com.fantasycolegas.fantasy_colegas_backend.service.CustomUserDetailsService;
+import com.fantasycolegas.fantasy_colegas_backend.service.FileStorageService;
 import com.fantasycolegas.fantasy_colegas_backend.service.UserService;
 import com.fantasycolegas.fantasy_colegas_backend.util.JwtUtil;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -64,6 +65,10 @@ class UserControllerTest {
 
     @TestConfiguration
     static class TestConfig {
+        @Bean
+        @Primary
+        public FileStorageService fileStorageService() {return mock(FileStorageService.class);}
+
         @Bean
         @Primary
         public UserService userService() {

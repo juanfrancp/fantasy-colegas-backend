@@ -1,8 +1,10 @@
 package com.fantasycolegas.fantasy_colegas_backend.service;
 
 import com.fantasycolegas.fantasy_colegas_backend.dto.request.UserUpdateDto;
+import com.fantasycolegas.fantasy_colegas_backend.dto.response.UserResponseDto;
 import com.fantasycolegas.fantasy_colegas_backend.model.User;
 import com.fantasycolegas.fantasy_colegas_backend.repository.UserRepository;
+import com.fantasycolegas.fantasy_colegas_backend.util.JwtUtil;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -10,7 +12,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Optional;
@@ -28,7 +32,15 @@ class UserServiceTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
-    @InjectMocks
+    @Mock
+    private CustomUserDetailsService userDetailsService;
+
+    @Mock
+    private JwtUtil jwtUtil;
+
+    @Mock
+    private FileStorageService fileStorageService;
+
     private UserService userService;
 
     private User user;
@@ -37,6 +49,15 @@ class UserServiceTest {
 
     @BeforeEach
     void setUp() {
+
+        userService = new UserService(
+                userRepository,
+                passwordEncoder,
+                userDetailsService,
+                jwtUtil,
+                fileStorageService
+        );
+
         user = new User();
         user.setId(MOCK_USER_ID);
         user.setUsername("testuser");
@@ -150,5 +171,47 @@ class UserServiceTest {
         var exception = assertThrows(ResponseStatusException.class, () -> userService.deleteUser(NON_EXISTENT_USER_ID));
         assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
         verify(userRepository, never()).deleteById(anyLong());
+    }
+
+    @Test
+    void updateUserProfileImage_whenUserExists_shouldUpdateAndReturnDto() {
+        String username = "testuser";
+        String fileName = "test-image.jpg";
+        String expectedUrl = "/uploads/profile-pics/" + fileName;
+        MockMultipartFile mockFile = new MockMultipartFile("image", "test-image.jpg", "image/jpeg", "test image content".getBytes());
+
+        User existingUser = new User();
+        existingUser.setId(1L);
+        existingUser.setUsername(username);
+        existingUser.setEmail("test@example.com");
+
+        when(fileStorageService.storeFile(any(MultipartFile.class), eq("profile-pics"))).thenReturn(fileName);
+        when(userRepository.findByUsername(username)).thenReturn(Optional.of(existingUser));
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0)); // Devuelve el mismo usuario que se intenta guardar
+
+        UserResponseDto resultDto = userService.updateUserProfileImage(username, mockFile);
+
+        assertNotNull(resultDto);
+        assertEquals(username, resultDto.getUsername());
+        assertEquals(expectedUrl, resultDto.getProfileImageUrl());
+
+        verify(fileStorageService, times(1)).storeFile(mockFile, "profile-pics");
+        verify(userRepository, times(1)).findByUsername(username);
+        verify(userRepository, times(1)).save(existingUser);
+    }
+
+    @Test
+    void updateUserProfileImage_whenUserDoesNotExist_shouldThrowException() {
+        String username = "nonexistent";
+        MockMultipartFile mockFile = new MockMultipartFile("image", "test.jpg", "image/jpeg", new byte[0]);
+
+        when(userRepository.findByUsername(username)).thenReturn(Optional.empty());
+
+        assertThrows(ResponseStatusException.class, () -> {
+            userService.updateUserProfileImage(username, mockFile);
+        });
+
+        verify(fileStorageService, never()).storeFile(any(), any());
+        verify(userRepository, never()).save(any());
     }
 }

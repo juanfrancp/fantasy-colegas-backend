@@ -6,6 +6,7 @@ import com.fantasycolegas.fantasy_colegas_backend.dto.response.UserResponseDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.response.UserUpdateResponseDto;
 import com.fantasycolegas.fantasy_colegas_backend.model.User;
 import com.fantasycolegas.fantasy_colegas_backend.security.CustomUserDetails;
+import com.fantasycolegas.fantasy_colegas_backend.service.FileStorageService;
 import com.fantasycolegas.fantasy_colegas_backend.service.UserService;
 import com.fantasycolegas.fantasy_colegas_backend.util.JwtUtil;
 import jakarta.validation.Valid;
@@ -17,6 +18,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 
 @RestController
@@ -27,10 +29,7 @@ public class UserController {
     private final UserService userService;
 
     @Autowired
-    private JwtUtil jwtUtil;
-
-    @Autowired
-    private UserDetailsService userDetailsService;
+    private FileStorageService fileStorageService;
 
     @Autowired
     public UserController(UserService userService) {
@@ -73,5 +72,15 @@ public class UserController {
         UserUpdateResponseDto response = userService.updateUserAndGenerateNewToken(currentUsername, userUpdateDto);
 
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/me/profile-image")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<UserResponseDto> uploadProfileImage(@RequestParam("image") MultipartFile file, Authentication authentication) {
+        String username = authentication.getName();
+
+        UserResponseDto responseDto = userService.updateUserProfileImage(username, file);
+
+        return ResponseEntity.ok(responseDto);
     }
 }
