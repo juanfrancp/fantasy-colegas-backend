@@ -385,6 +385,12 @@ public class LeagueController {
         }
     }
 
+    @PostMapping("/join-by-code")
+    public ResponseEntity<LeagueResponseDto> joinLeagueByCode(@RequestBody JoinLeagueDto joinLeagueDto, @AuthenticationPrincipal CustomUserDetails userDetails) {
+        LeagueResponseDto joinedLeague = leagueService.joinLeague(joinLeagueDto.getJoinCode(), userDetails.getId());
+        return ResponseEntity.ok(joinedLeague);
+    }
+
     /**
      * Mapea un objeto {@link LeagueJoinRequest} a un {@link JoinRequestResponseDto}.
      *
@@ -393,5 +399,17 @@ public class LeagueController {
      */
     private JoinRequestResponseDto mapToJoinRequestDto(LeagueJoinRequest request) {
         return new JoinRequestResponseDto(request.getId(), request.getUser().getId(), request.getUser().getUsername(), request.getRequestDate());
+    }
+
+    @GetMapping("/my-pending-requests")
+    public ResponseEntity<List<Long>> getMyPendingRequests(@AuthenticationPrincipal CustomUserDetails userDetails) {
+        List<Long> pendingRequestLeagueIds = leagueService.getMyPendingRequests(userDetails.getId());
+        return ResponseEntity.ok(pendingRequestLeagueIds);
+    }
+
+    @DeleteMapping("/{leagueId}/request-join")
+    public ResponseEntity<Void> cancelJoinRequest(@PathVariable Long leagueId, @AuthenticationPrincipal CustomUserDetails userDetails) {
+        leagueService.cancelJoinRequest(leagueId, userDetails.getId());
+        return ResponseEntity.noContent().build();
     }
 }

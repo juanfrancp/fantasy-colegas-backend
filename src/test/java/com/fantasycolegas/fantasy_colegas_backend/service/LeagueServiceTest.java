@@ -16,6 +16,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -651,5 +652,75 @@ class LeagueServiceTest {
 
         assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
         verify(leagueRepository, times(1)).findByJoinCode(invalidCode);
+    }
+
+    @Test
+    void cancelJoinRequest_whenRequestExists_shouldDeleteRequest() {
+        long leagueId = 1L;
+        long userId = testUser.getId();
+        LeagueJoinRequest pendingRequest = new LeagueJoinRequest();
+        pendingRequest.setId(1L);
+
+        when(leagueJoinRequestRepository.findByUserIdAndLeagueIdAndStatus(userId, leagueId, com.fantasycolegas.fantasy_colegas_backend.model.enums.RequestStatus.PENDING))
+                .thenReturn(Optional.of(pendingRequest));
+
+        leagueService.cancelJoinRequest(leagueId, userId);
+
+        verify(leagueJoinRequestRepository, times(1)).delete(pendingRequest);
+    }
+
+    @Test
+    void cancelJoinRequest_whenRequestDoesNotExist_shouldThrowNotFoundException() {
+        long leagueId = 2L;
+        long userId = testUser.getId();
+
+        when(leagueJoinRequestRepository.findByUserIdAndLeagueIdAndStatus(userId, leagueId, com.fantasycolegas.fantasy_colegas_backend.model.enums.RequestStatus.PENDING))
+                .thenReturn(Optional.empty());
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> leagueService.cancelJoinRequest(leagueId, userId));
+
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+        assertTrue(exception.getReason().contains("No se encontró una solicitud pendiente"));
+
+        verify(leagueJoinRequestRepository, never()).delete(any(LeagueJoinRequest.class));
+    }
+
+    @Test
+    void getMyPendingRequests_whenRequestsExist_shouldReturnListOfLeagueIds() {
+        long userId = testUser.getId();
+
+        League league1 = new League();
+        league1.setId(10L);
+        League league2 = new League();
+        league2.setId(20L);
+
+        LeagueJoinRequest request1 = new LeagueJoinRequest();
+        request1.setLeague(league1);
+        LeagueJoinRequest request2 = new LeagueJoinRequest();
+        request2.setLeague(league2);
+
+        when(leagueJoinRequestRepository.findByUserIdAndStatus(userId, com.fantasycolegas.fantasy_colegas_backend.model.enums.RequestStatus.PENDING))
+                .thenReturn(List.of(request1, request2));
+
+        List<Long> result = leagueService.getMyPendingRequests(userId);
+
+        assertNotNull(result);
+        assertEquals(2, result.size());
+        assertTrue(result.contains(10L));
+        assertTrue(result.contains(20L));
+    }
+
+    @Test
+    void getMyPendingRequests_whenNoRequestsExist_shouldReturnEmptyList() {
+        long userId = testUser.getId();
+
+        when(leagueJoinRequestRepository.findByUserIdAndStatus(userId, com.fantasycolegas.fantasy_colegas_backend.model.enums.RequestStatus.PENDING))
+                .thenReturn(Collections.emptyList());
+
+        List<Long> result = leagueService.getMyPendingRequests(userId);
+
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
     }
 }

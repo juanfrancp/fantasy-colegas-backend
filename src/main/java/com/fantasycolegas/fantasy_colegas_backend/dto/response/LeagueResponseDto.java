@@ -1,5 +1,6 @@
 package com.fantasycolegas.fantasy_colegas_backend.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -26,6 +27,7 @@ public class LeagueResponseDto {
     private String name;
     private String description;
     private String image;
+    @JsonProperty("isPrivate")
     private boolean isPrivate;
     private String joinCode;
     private int numberOfPlayers;

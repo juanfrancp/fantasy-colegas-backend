@@ -653,4 +653,18 @@ public class LeagueService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Liga no encontrada con ese código."));
         return mapToLeagueResponseDto(league);
     }
+
+    public void cancelJoinRequest(Long leagueId, Long userId) {
+        LeagueJoinRequest request = leagueJoinRequestRepository
+                .findByUserIdAndLeagueIdAndStatus(userId, leagueId, RequestStatus.PENDING)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "No se encontró una solicitud pendiente para esta liga."));
+        leagueJoinRequestRepository.delete(request);
+    }
+
+    public List<Long> getMyPendingRequests(Long userId) {
+        return leagueJoinRequestRepository.findByUserIdAndStatus(userId, RequestStatus.PENDING)
+                .stream()
+                .map(request -> request.getLeague().getId())
+                .collect(Collectors.toList());
+    }
 }

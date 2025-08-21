@@ -559,4 +559,44 @@ public class LeagueControllerTest {
 
         verify(leagueService, times(1)).getLeagueByJoinCode(invalidCode);
     }
+
+    @Test
+    @WithTestUser(id = MOCK_USER_ID)
+    void getMyPendingRequests_shouldReturnListOfLeagueIds() throws Exception {
+        when(leagueService.getMyPendingRequests(MOCK_USER_ID)).thenReturn(List.of(10L, 20L));
+
+        mockMvc.perform(get("/api/leagues/my-pending-requests"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()", is(2)))
+                .andExpect(jsonPath("$[0]", is(10)))
+                .andExpect(jsonPath("$[1]", is(20)));
+
+        verify(leagueService, times(1)).getMyPendingRequests(MOCK_USER_ID);
+    }
+
+    @Test
+    @WithTestUser(id = MOCK_USER_ID)
+    void cancelJoinRequest_whenRequestExists_shouldReturnNoContent() throws Exception {
+        long leagueIdToCancel = 5L;
+        doNothing().when(leagueService).cancelJoinRequest(leagueIdToCancel, MOCK_USER_ID);
+
+        mockMvc.perform(delete("/api/leagues/" + leagueIdToCancel + "/request-join")
+                        .with(csrf()))
+                .andExpect(status().isNoContent());
+
+        verify(leagueService, times(1)).cancelJoinRequest(leagueIdToCancel, MOCK_USER_ID);
+    }
+
+    @Test
+    @WithTestUser(id = MOCK_USER_ID)
+    void cancelJoinRequest_whenRequestDoesNotExist_shouldReturnNotFound() throws Exception {
+        long nonExistentLeagueId = 99L;
+        doThrow(new ResponseStatusException(HttpStatus.NOT_FOUND, "No se encontró una solicitud pendiente"))
+                .when(leagueService).cancelJoinRequest(nonExistentLeagueId, MOCK_USER_ID);
+
+        mockMvc.perform(delete("/api/leagues/" + nonExistentLeagueId + "/request-join")
+                        .with(csrf()))
+                .andExpect(status().isNotFound());
+        verify(leagueService, times(1)).cancelJoinRequest(nonExistentLeagueId, MOCK_USER_ID);
+    }
 }
