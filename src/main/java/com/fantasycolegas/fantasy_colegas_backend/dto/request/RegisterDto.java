@@ -2,6 +2,7 @@ package com.fantasycolegas.fantasy_colegas_backend.dto.request;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 /**
@@ -18,6 +19,7 @@ import lombok.Data;
 @Data
 public class RegisterDto {
     @NotBlank(message = "Username cannot be empty")
+    @Size(min = 3, max = 25, message = "El nombre de usuario debe tener entre 3 y 25 caracteres")
     private String username;
 
     @NotBlank(message = "Email cannot be empty")
