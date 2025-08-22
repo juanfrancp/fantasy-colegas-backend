@@ -670,14 +670,11 @@ public class LeagueService {
 
         String fileName = fileStorageService.storeFile(file, "league-pics");
 
-        String fileDownloadUri = ServletUriComponentsBuilder.fromCurrentContextPath()
-                .path("/api/files/league-pics/")
-                .path(fileName)
-                .toUriString();
+        String filePath = "/uploads/league-pics/" + fileName;
 
-        league.setImage(fileDownloadUri);
+        league.setImage(filePath);
         leagueRepository.save(league);
 
-        return fileDownloadUri;
+        return filePath;
     }
 }
