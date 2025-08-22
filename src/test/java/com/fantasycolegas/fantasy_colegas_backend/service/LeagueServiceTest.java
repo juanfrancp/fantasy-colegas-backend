@@ -97,12 +97,15 @@ class LeagueServiceTest {
         assertEquals(leagueCreateDto.getName(), result.getName());
         assertEquals(1, result.getAdmins().size());
 
-        ArgumentCaptor<UserLeagueRole> roleCaptor = ArgumentCaptor.forClass(UserLeagueRole.class);
-        verify(userLeagueRoleRepository, times(1)).save(roleCaptor.capture());
-        UserLeagueRole savedRole = roleCaptor.getValue();
+        ArgumentCaptor<League> leagueCaptor = ArgumentCaptor.forClass(League.class);
+        verify(leagueRepository, times(1)).save(leagueCaptor.capture());
+        League savedLeague = leagueCaptor.getValue();
+
+        assertNotNull(savedLeague.getUserRoles());
+        assertEquals(1, savedLeague.getUserRoles().size());
+        UserLeagueRole savedRole = savedLeague.getUserRoles().iterator().next();
 
         assertEquals(testUser.getId(), savedRole.getUser().getId());
-        assertEquals(MOCKED_LEAGUE_ID, savedRole.getLeague().getId());
         assertEquals(LeagueRole.ADMIN, savedRole.getRole());
         verify(rosterPlayerRepository, times(1)).saveAll(anyList());
     }
