@@ -12,7 +12,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -39,11 +41,12 @@ public class LeagueService {
     private final PlayerRepository playerRepository;
     private final RosterPlayerRepository rosterPlayerRepository;
     private PlayerMatchStatsRepository playerMatchStatsRepository;
+    private final FileStorageService fileStorageService;
 
     /**
      * Constructor del servicio que inyecta las dependencias de los repositorios.
      */
-    public LeagueService(LeagueRepository leagueRepository, UserRepository userRepository, UserLeagueRoleRepository userLeagueRoleRepository, LeagueJoinRequestRepository leagueJoinRequestRepository, PlayerRepository playerRepository, RosterPlayerRepository rosterPlayerRepository, PlayerMatchStatsRepository playerMatchStatsRepository) {
+    public LeagueService(LeagueRepository leagueRepository, UserRepository userRepository, UserLeagueRoleRepository userLeagueRoleRepository, LeagueJoinRequestRepository leagueJoinRequestRepository, PlayerRepository playerRepository, RosterPlayerRepository rosterPlayerRepository, PlayerMatchStatsRepository playerMatchStatsRepository, FileStorageService fileStorageService) {
         this.leagueRepository = leagueRepository;
         this.userRepository = userRepository;
         this.userLeagueRoleRepository = userLeagueRoleRepository;
@@ -51,6 +54,7 @@ public class LeagueService {
         this.playerRepository = playerRepository;
         this.rosterPlayerRepository = rosterPlayerRepository;
         this.playerMatchStatsRepository = playerMatchStatsRepository;
+        this.fileStorageService = fileStorageService;
     }
 
     /**
@@ -238,19 +242,11 @@ public class LeagueService {
             joinCodeBuilder.append(characters.charAt(random.nextInt(characters.length())));
         }
         newLeague.setJoinCode(joinCodeBuilder.toString());
-
         newLeague.setNumberOfPlayers(1);
-
         League savedLeague = leagueRepository.save(newLeague);
-
         UserLeagueRole adminRole = new UserLeagueRole(creator, savedLeague, LeagueRole.ADMIN);
-        userLeagueRoleRepository.save(adminRole);
-
         savedLeague.getUserRoles().add(adminRole);
-
-
         createRandomRosterForUser(newLeague.getId(), creator.getId());
-
         return mapToLeagueResponseDto(savedLeague);
     }
 
@@ -666,5 +662,22 @@ public class LeagueService {
                 .stream()
                 .map(request -> request.getLeague().getId())
                 .collect(Collectors.toList());
+    }
+
+    public String uploadLeagueImage(Long leagueId, MultipartFile file) {
+        League league = leagueRepository.findById(leagueId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Liga no encontrada con ID: " + leagueId));
+
+        String fileName = fileStorageService.storeFile(file, "league-pics");
+
+        String fileDownloadUri = ServletUriComponentsBuilder.fromCurrentContextPath()
+                .path("/api/files/league-pics/")
+                .path(fileName)
+                .toUriString();
+
+        league.setImage(fileDownloadUri);
+        leagueRepository.save(league);
+
+        return fileDownloadUri;
     }
 }

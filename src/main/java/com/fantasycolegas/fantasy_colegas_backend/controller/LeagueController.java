@@ -16,9 +16,11 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -411,5 +413,15 @@ public class LeagueController {
     public ResponseEntity<Void> cancelJoinRequest(@PathVariable Long leagueId, @AuthenticationPrincipal CustomUserDetails userDetails) {
         leagueService.cancelJoinRequest(leagueId, userDetails.getId());
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{leagueId}/upload-image")
+    public ResponseEntity<?> uploadLeagueImage(@PathVariable Long leagueId, @RequestParam("image") MultipartFile file) {
+        try {
+            String fileUri = leagueService.uploadLeagueImage(leagueId, file);
+            return ResponseEntity.ok().body(Map.of("imageUrl", fileUri));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("No se pudo subir la imagen: " + e.getMessage());
+        }
     }
 }
