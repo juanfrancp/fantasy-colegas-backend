@@ -1,5 +1,6 @@
 package com.fantasycolegas.fantasy_colegas_backend.dto.request;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -31,6 +32,7 @@ public class LeagueCreateDto {
 
     private String image;
 
+    @JsonProperty("isPrivate")
     private boolean isPrivate;
 
     private int numberOfPlayers;

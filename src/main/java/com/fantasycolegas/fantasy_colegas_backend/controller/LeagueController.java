@@ -6,6 +6,7 @@ import com.fantasycolegas.fantasy_colegas_backend.dto.request.LeagueCreateDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.request.LeagueTeamSizeUpdateDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.response.*;
 import com.fantasycolegas.fantasy_colegas_backend.model.LeagueJoinRequest;
+import com.fantasycolegas.fantasy_colegas_backend.model.User;
 import com.fantasycolegas.fantasy_colegas_backend.security.CustomUserDetails;
 import com.fantasycolegas.fantasy_colegas_backend.service.LeagueService;
 import jakarta.validation.Valid;
@@ -21,6 +22,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -266,9 +268,9 @@ public class LeagueController {
     @GetMapping("/{leagueId}/requests")
     public ResponseEntity<List<JoinRequestResponseDto>> getPendingJoinRequests(@PathVariable Long leagueId) {
         List<LeagueJoinRequest> requests = leagueService.getPendingJoinRequests(leagueId);
-
-        List<JoinRequestResponseDto> requestsDto = requests.stream().map(this::mapToJoinRequestDto).collect(Collectors.toList());
-
+        List<JoinRequestResponseDto> requestsDto = requests.stream()
+                .map(this::mapToJoinRequestDto)
+                .collect(Collectors.toList());
         return ResponseEntity.ok(requestsDto);
     }
 
@@ -400,7 +402,7 @@ public class LeagueController {
      * @return Un DTO de respuesta de la solicitud de unión.
      */
     private JoinRequestResponseDto mapToJoinRequestDto(LeagueJoinRequest request) {
-        return new JoinRequestResponseDto(request.getId(), request.getUser().getId(), request.getUser().getUsername(), request.getRequestDate());
+        return new JoinRequestResponseDto(request.getId(), request.getUser().getId(), request.getUser().getUsername(), request.getRequestDate(), request.getUser().getProfileImageUrl());
     }
 
     @GetMapping("/my-pending-requests")
@@ -423,5 +425,14 @@ public class LeagueController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("No se pudo subir la imagen: " + e.getMessage());
         }
+    }
+
+    @GetMapping("/{leagueId}/members")
+    public ResponseEntity<List<UserResponseDto>> getLeagueMembers(@PathVariable Long leagueId) {
+        List<User> members = leagueService.getLeagueMembers(leagueId);
+        List<UserResponseDto> membersDto = members.stream()
+                .map(user -> new UserResponseDto(user.getId(), user.getUsername(), user.getEmail(), user.getProfileImageUrl()))
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(membersDto);
     }
 }

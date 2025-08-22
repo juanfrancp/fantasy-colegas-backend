@@ -22,10 +22,9 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 public class JoinRequestResponseDto {
-
     private Long id;
     private Long userId;
     private String username;
     private LocalDateTime requestDate;
-
+    private String profileImageUrl;
 }

@@ -377,7 +377,7 @@ public class LeagueService {
     public List<LeagueJoinRequest> getPendingJoinRequests(Long leagueId) {
         League league = leagueRepository.findById(leagueId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Liga no encontrada"));
 
-        return leagueJoinRequestRepository.findByLeagueAndStatus(league, RequestStatus.PENDING);
+        return leagueJoinRequestRepository.findByLeagueAndStatusWithUser(league, RequestStatus.PENDING);
     }
 
     /**
@@ -676,5 +676,14 @@ public class LeagueService {
         leagueRepository.save(league);
 
         return filePath;
+    }
+
+    public List<User> getLeagueMembers(Long leagueId) {
+        League league = leagueRepository.findById(leagueId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Liga no encontrada"));
+
+        return league.getUserRoles().stream()
+                .map(UserLeagueRole::getUser)
+                .collect(Collectors.toList());
     }
 }
