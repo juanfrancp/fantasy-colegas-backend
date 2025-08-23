@@ -449,12 +449,23 @@ public class LeagueService {
     public LeagueResponseDto updateLeague(Long id, LeagueCreateDto leagueCreateDto) {
         League existingLeague = leagueRepository.findById(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Liga no encontrada"));
 
+        boolean wasPrivate = existingLeague.isPrivate();
+
         existingLeague.setName(leagueCreateDto.getName());
         existingLeague.setDescription(leagueCreateDto.getDescription());
         existingLeague.setImage(leagueCreateDto.getImage());
         existingLeague.setPrivate(leagueCreateDto.isPrivate());
         existingLeague.setNumberOfPlayers(leagueCreateDto.getNumberOfPlayers());
         existingLeague.setTeamSize(leagueCreateDto.getTeamSize());
+
+        if (wasPrivate && !existingLeague.isPrivate()) {
+            List<LeagueJoinRequest> pendingRequests = leagueJoinRequestRepository
+                    .findByLeagueAndStatusWithUser(existingLeague, RequestStatus.PENDING);
+
+            for (LeagueJoinRequest request : pendingRequests) {
+                acceptJoinRequest(request.getId());
+            }
+        }
 
         League updatedLeague = leagueRepository.save(existingLeague);
         return mapToLeagueResponseDto(updatedLeague);
