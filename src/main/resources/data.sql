@@ -136,7 +136,6 @@ INSERT INTO matches (league_id, name, description, match_date) VALUES
 (3, 'Derbi del Barrio - Ida', 'Máxima rivalidad en juego', '2025-09-01'),
 (3, 'Derbi del Barrio - Vuelta', 'La revancha más esperada', '2025-09-08');
 
-
 -- #####################################################################################
 -- # ESTADÍSTICAS DE PARTIDOS
 -- #####################################################################################
