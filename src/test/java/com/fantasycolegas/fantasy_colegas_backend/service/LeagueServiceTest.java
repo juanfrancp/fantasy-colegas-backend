@@ -42,6 +42,8 @@ class LeagueServiceTest {
     private LeagueJoinRequestRepository leagueJoinRequestRepository;
     @Mock
     private PlayerMatchStatsRepository playerMatchStatsRepository;
+    @Mock
+    private MatchRepository matchRepository;
     @InjectMocks
     private LeagueService leagueService;
 
@@ -347,15 +349,31 @@ class LeagueServiceTest {
 
     @Test
     void deleteLeague_whenUserIsAdmin_shouldDeleteLeagueAndAllRelatedData() {
+        // --- Arrange (Preparación) ---
         long leagueId = 90L;
+        long userId = testUser.getId();
         League league = new League();
         league.setId(leagueId);
-        when(userLeagueRoleRepository.findAllByLeagueId(leagueId)).thenReturn(java.util.Collections.singletonList(new UserLeagueRole(testUser, league, LeagueRole.ADMIN)));
+
+        // 3. FORZAMOS QUE LA COMPROBACIÓN DE PERMISOS SEA EXITOSA
+        // Le decimos al "espía" del servicio que cuando se llame a checkIfUserIsAdmin, devuelva 'true'.
+        doReturn(true).when(leagueService).checkIfUserIsAdmin(leagueId, userId);
+
+        // 4. Preparamos las respuestas de los repositorios que se usarán DESPUÉS del check
         when(leagueRepository.findById(leagueId)).thenReturn(Optional.of(league));
-        leagueService.deleteLeague(leagueId, testUser.getId());
-        verify(rosterPlayerRepository, times(1)).deleteAll(anyList());
-        verify(playerRepository, times(1)).deleteAll(anyList());
-        verify(userLeagueRoleRepository, times(1)).deleteAll(anyList());
+        when(matchRepository.findAllByLeague(league)).thenReturn(Collections.emptyList());
+
+        // --- Act (Ejecución) ---
+        leagueService.deleteLeague(leagueId, userId);
+
+        // --- Assert (Verificación) ---
+        // Verificamos que se llame a la lógica de borrado correcta
+        verify(leagueJoinRequestRepository, times(1)).deleteAllByLeague(league);
+        verify(rosterPlayerRepository, times(1)).deleteAllByLeague(league);
+        verify(playerMatchStatsRepository, times(1)).deleteAllByMatchIn(anyList());
+        verify(matchRepository, times(1)).deleteAllByLeague(league);
+        verify(playerRepository, times(1)).deleteAllByLeague(league);
+        verify(userLeagueRoleRepository, times(1)).deleteAllByLeague(league);
         verify(leagueRepository, times(1)).delete(league);
     }
 

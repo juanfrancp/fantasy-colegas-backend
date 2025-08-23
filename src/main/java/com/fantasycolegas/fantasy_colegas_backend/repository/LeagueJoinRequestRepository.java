@@ -39,4 +39,6 @@ public interface LeagueJoinRequestRepository extends JpaRepository<LeagueJoinReq
     Optional<LeagueJoinRequest> findByUserIdAndLeagueIdAndStatus(Long userId, Long leagueId, RequestStatus status);
 
     List<LeagueJoinRequest> findByUserIdAndStatus(Long userId, RequestStatus status);
+
+    void deleteAllByLeague(League league);
 }

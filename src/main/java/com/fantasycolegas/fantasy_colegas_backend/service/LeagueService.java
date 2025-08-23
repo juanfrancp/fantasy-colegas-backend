@@ -42,11 +42,12 @@ public class LeagueService {
     private final RosterPlayerRepository rosterPlayerRepository;
     private PlayerMatchStatsRepository playerMatchStatsRepository;
     private final FileStorageService fileStorageService;
+    private final MatchRepository matchRepository;
 
     /**
      * Constructor del servicio que inyecta las dependencias de los repositorios.
      */
-    public LeagueService(LeagueRepository leagueRepository, UserRepository userRepository, UserLeagueRoleRepository userLeagueRoleRepository, LeagueJoinRequestRepository leagueJoinRequestRepository, PlayerRepository playerRepository, RosterPlayerRepository rosterPlayerRepository, PlayerMatchStatsRepository playerMatchStatsRepository, FileStorageService fileStorageService) {
+    public LeagueService(LeagueRepository leagueRepository, UserRepository userRepository, UserLeagueRoleRepository userLeagueRoleRepository, LeagueJoinRequestRepository leagueJoinRequestRepository, PlayerRepository playerRepository, RosterPlayerRepository rosterPlayerRepository, PlayerMatchStatsRepository playerMatchStatsRepository, FileStorageService fileStorageService, MatchRepository matchRepository) {
         this.leagueRepository = leagueRepository;
         this.userRepository = userRepository;
         this.userLeagueRoleRepository = userLeagueRoleRepository;
@@ -55,6 +56,7 @@ public class LeagueService {
         this.rosterPlayerRepository = rosterPlayerRepository;
         this.playerMatchStatsRepository = playerMatchStatsRepository;
         this.fileStorageService = fileStorageService;
+        this.matchRepository = matchRepository;
     }
 
     /**
@@ -488,14 +490,20 @@ public class LeagueService {
 
         League league = leagueRepository.findById(leagueId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Liga no encontrada."));
 
-        List<RosterPlayer> rosterPlayers = rosterPlayerRepository.findAllByLeagueId(leagueId);
-        rosterPlayerRepository.deleteAll(rosterPlayers);
+        leagueJoinRequestRepository.deleteAllByLeague(league);
 
-        List<Player> players = playerRepository.findAllByLeagueId(leagueId);
-        playerRepository.deleteAll(players);
+        rosterPlayerRepository.deleteAllByLeague(league);
 
-        List<UserLeagueRole> userLeagueRoles = userLeagueRoleRepository.findAllByLeagueId(leagueId);
-        userLeagueRoleRepository.deleteAll(userLeagueRoles);
+        List<Match> matchesInLeague = matchRepository.findAllByLeague(league);
+        if (!matchesInLeague.isEmpty()) {
+            playerMatchStatsRepository.deleteAllByMatchIn(matchesInLeague);
+        }
+
+        matchRepository.deleteAllByLeague(league);
+
+        playerRepository.deleteAllByLeague(league);
+
+        userLeagueRoleRepository.deleteAllByLeague(league);
 
         leagueRepository.delete(league);
     }

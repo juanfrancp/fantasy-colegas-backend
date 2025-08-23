@@ -107,4 +107,6 @@ public interface RosterPlayerRepository extends JpaRepository<RosterPlayer, Long
      */
     @Query("SELECT DISTINCT rp.user.id FROM RosterPlayer rp WHERE rp.league.id = :leagueId")
     List<Long> findDistinctUserIdsByLeagueId(Long leagueId);
+
+    void deleteAllByLeague(League league);
 }

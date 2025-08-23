@@ -1,5 +1,6 @@
 package com.fantasycolegas.fantasy_colegas_backend.repository;
 
+import com.fantasycolegas.fantasy_colegas_backend.model.League;
 import com.fantasycolegas.fantasy_colegas_backend.model.Match;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -35,4 +36,8 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
      * @return El número de partidos.
      */
     long countByLeagueId(Long leagueId);
+
+    void deleteAllByLeague(League league);
+
+    List<Match> findAllByLeague(League league);
 }

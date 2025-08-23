@@ -1,5 +1,6 @@
 package com.fantasycolegas.fantasy_colegas_backend.repository;
 
+import com.fantasycolegas.fantasy_colegas_backend.model.Match;
 import com.fantasycolegas.fantasy_colegas_backend.model.PlayerMatchStats;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -37,4 +38,6 @@ public interface PlayerMatchStatsRepository extends JpaRepository<PlayerMatchSta
      * @return Una lista de estadísticas de partidos del jugador.
      */
     List<PlayerMatchStats> findByPlayerId(Long id);
+
+    void deleteAllByMatchIn(List<Match> matches);
 }

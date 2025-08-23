@@ -1,5 +1,6 @@
 package com.fantasycolegas.fantasy_colegas_backend.repository;
 
+import com.fantasycolegas.fantasy_colegas_backend.model.League;
 import com.fantasycolegas.fantasy_colegas_backend.model.UserLeagueRole;
 import com.fantasycolegas.fantasy_colegas_backend.model.UserLeagueRoleId;
 import com.fantasycolegas.fantasy_colegas_backend.model.enums.LeagueRole;
@@ -57,4 +58,6 @@ public interface UserLeagueRoleRepository extends JpaRepository<UserLeagueRole, 
      * @return El número de usuarios con ese rol en la liga.
      */
     long countByLeagueIdAndRole(Long leagueId, LeagueRole role);
+
+    void deleteAllByLeague(League league);
 }
