@@ -435,4 +435,10 @@ public class LeagueController {
                 .collect(Collectors.toList());
         return ResponseEntity.ok(membersDto);
     }
+
+    @GetMapping("/{leagueId}/standings")
+    public ResponseEntity<List<UserStandingsDto>> getLeagueStandings(@PathVariable Long leagueId) {
+        List<UserStandingsDto> standings = leagueService.getLeagueStandings(leagueId);
+        return ResponseEntity.ok(standings);
+    }
 }

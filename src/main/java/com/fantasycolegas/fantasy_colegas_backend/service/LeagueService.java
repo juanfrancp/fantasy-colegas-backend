@@ -669,6 +669,7 @@ public class LeagueService {
         return mapToLeagueResponseDto(league);
     }
 
+    @Transactional
     public void cancelJoinRequest(Long leagueId, Long userId) {
         LeagueJoinRequest request = leagueJoinRequestRepository
                 .findByUserIdAndLeagueIdAndStatus(userId, leagueId, RequestStatus.PENDING)
@@ -676,6 +677,7 @@ public class LeagueService {
         leagueJoinRequestRepository.delete(request);
     }
 
+    @Transactional
     public List<Long> getMyPendingRequests(Long userId) {
         return leagueJoinRequestRepository.findByUserIdAndStatus(userId, RequestStatus.PENDING)
                 .stream()
@@ -683,6 +685,7 @@ public class LeagueService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional
     public String uploadLeagueImage(Long leagueId, MultipartFile file) {
         League league = leagueRepository.findById(leagueId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Liga no encontrada con ID: " + leagueId));
@@ -697,6 +700,7 @@ public class LeagueService {
         return filePath;
     }
 
+    @Transactional
     public List<User> getLeagueMembers(Long leagueId) {
         League league = leagueRepository.findById(leagueId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Liga no encontrada"));
@@ -704,5 +708,29 @@ public class LeagueService {
         return league.getUserRoles().stream()
                 .map(UserLeagueRole::getUser)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public List<UserStandingsDto> getLeagueStandings(Long leagueId) {
+        List<User> members = getLeagueMembers(leagueId);
+
+        // 2. Calcula los puntos para cada miembro.
+        List<UserStandingsDto> standings = members.stream().map(user -> {
+            int totalPoints = rosterPlayerRepository.findByUserIdAndLeagueId(user.getId(), leagueId)
+                    .stream()
+                    .mapToInt(rosterPlayer -> rosterPlayer.getPlayer().getTotalPoints())
+                    .sum();
+
+            return new UserStandingsDto(
+                    user.getId(),
+                    user.getUsername(),
+                    user.getProfileImageUrl(),
+                    totalPoints
+            );
+        }).collect(Collectors.toList());
+
+        standings.sort(Comparator.comparingInt(UserStandingsDto::getTotalPoints).reversed());
+
+        return standings;
     }
 }
