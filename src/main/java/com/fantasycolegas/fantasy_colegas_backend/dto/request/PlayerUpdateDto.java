@@ -2,6 +2,7 @@
 package com.fantasycolegas.fantasy_colegas_backend.dto.request;
 
 import lombok.Data;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * @author Juan Francisco Carceles
@@ -18,5 +19,5 @@ import lombok.Data;
 public class PlayerUpdateDto {
 
     private String name;
-    private String image;
+    private MultipartFile image;
 }

@@ -77,9 +77,13 @@ public class PlayerService {
         if (playerUpdateDto.getName() != null && !playerUpdateDto.getName().isBlank()) {
             player.setName(playerUpdateDto.getName());
         }
-        if (playerUpdateDto.getImage() != null && !playerUpdateDto.getImage().isBlank()) {
-            player.setImage(playerUpdateDto.getImage());
+
+        MultipartFile imageFile = playerUpdateDto.getImage();
+        if (imageFile != null && !imageFile.isEmpty()) {
+            String imageUrl = fileStorageService.storeFile(imageFile, "player-pics");
+            player.setImage("/uploads/player-pics/" +  imageUrl);
         }
+
 
         Player updatedPlayer = playerRepository.save(player);
         return mapToPlayerResponseDto(updatedPlayer);

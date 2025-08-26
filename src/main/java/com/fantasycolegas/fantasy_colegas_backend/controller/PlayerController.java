@@ -66,19 +66,20 @@ public class PlayerController {
 
     /**
      * Actualiza la información de un jugador existente.
-     * <p>
-     * Este endpoint requiere que el usuario autenticado sea un administrador de la liga.
-     * </p>
-     *
-     * @param leagueId        El ID de la liga a la que pertenece el jugador.
-     * @param playerId        El ID del jugador a actualizar.
-     * @param playerUpdateDto DTO con los datos a actualizar del jugador.
-     * @param currentUser     El usuario autenticado que realiza la petición.
-     * @return Una {@link ResponseEntity} con el {@link PlayerResponseDto} del jugador actualizado.
      */
     @PatchMapping("/leagues/{leagueId}/players/{playerId}")
-    public ResponseEntity<?> updatePlayer(@PathVariable Long leagueId, @PathVariable Long playerId, @RequestBody PlayerUpdateDto playerUpdateDto, @AuthenticationPrincipal CustomUserDetails currentUser) {
+    public ResponseEntity<?> updatePlayer(
+            @PathVariable Long leagueId,
+            @PathVariable Long playerId,
+            // Usa @RequestParam para los campos del formulario
+            @RequestParam("name") String name,
+            @RequestParam(value = "image", required = false) MultipartFile image,
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
         try {
+            PlayerUpdateDto playerUpdateDto = new PlayerUpdateDto();
+            playerUpdateDto.setName(name);
+            playerUpdateDto.setImage(image);
+
             PlayerResponseDto playerDto = playerService.updatePlayer(leagueId, playerId, playerUpdateDto, currentUser.getId());
             return ResponseEntity.ok(playerDto);
         } catch (ResponseStatusException e) {
