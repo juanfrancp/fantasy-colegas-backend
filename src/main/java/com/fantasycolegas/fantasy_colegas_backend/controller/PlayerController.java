@@ -12,7 +12,10 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
+
+import java.util.List;
 
 /**
  * @author Juan Francisco Carceles
@@ -41,14 +44,19 @@ public class PlayerController {
      * Este endpoint requiere que el usuario autenticado sea un administrador de la liga.
      * </p>
      *
-     * @param leagueId        El ID de la liga donde se creará el jugador.
-     * @param playerCreateDto DTO con los datos del nuevo jugador.
-     * @param currentUser     El usuario autenticado que realiza la petición.
      * @return Una {@link ResponseEntity} con el {@link PlayerResponseDto} del jugador creado.
      */
     @PostMapping("/leagues/{leagueId}/players")
-    public ResponseEntity<?> createPlayer(@PathVariable Long leagueId, @Valid @RequestBody PlayerCreateDto playerCreateDto, @AuthenticationPrincipal CustomUserDetails currentUser) {
+    public ResponseEntity<?> createPlayer(
+            @PathVariable Long leagueId,
+            @RequestParam("name") String name,
+            @RequestParam(value = "image", required = false) MultipartFile imageFile,
+            @AuthenticationPrincipal CustomUserDetails currentUser) {
         try {
+            PlayerCreateDto playerCreateDto = new PlayerCreateDto();
+            playerCreateDto.setName(name);
+            playerCreateDto.setImage(imageFile);
+
             PlayerResponseDto playerDto = playerService.createPlayer(leagueId, playerCreateDto, currentUser.getId());
             return new ResponseEntity<>(playerDto, HttpStatus.CREATED);
         } catch (ResponseStatusException e) {
@@ -136,5 +144,14 @@ public class PlayerController {
         } catch (ResponseStatusException e) {
             return ResponseEntity.status(e.getStatusCode()).body(e.getReason());
         }
+    }
+
+    /**
+     * Endpoint para obtener todos los jugadores de una liga.
+     */
+    @GetMapping("/players/league/{leagueId}")
+    public ResponseEntity<List<PlayerResponseDto>> getPlayersByLeague(@PathVariable Long leagueId) {
+        List<PlayerResponseDto> players = playerService.getPlayersByLeague(leagueId);
+        return ResponseEntity.ok(players);
     }
 }

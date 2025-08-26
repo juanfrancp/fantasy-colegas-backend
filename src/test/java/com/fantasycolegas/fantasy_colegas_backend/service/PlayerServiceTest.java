@@ -19,7 +19,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -354,5 +356,33 @@ class PlayerServiceTest {
         assertTrue(exception.getReason().contains("No se puede eliminar al jugador vacío"));
 
         verify(playerRepository, never()).delete(any(Player.class));
+    }
+
+    @Test
+    void getPlayersByLeague_shouldReturnPlayerDtos() {
+        // Given
+        Long leagueId = 1L;
+        Player player1 = new Player(1L, "Player One", "image1.jpg", 100, null, false);
+        Player player2 = new Player(2L, "Player Two", "image2.jpg", 150, null, false);
+        List<Player> players = Arrays.asList(player1, player2);
+
+        when(playerRepository.findAllByLeagueId(leagueId)).thenReturn(players);
+
+        // When
+        List<PlayerResponseDto> result = playerService.getPlayersByLeague(leagueId);
+
+        // Then
+        assertNotNull(result);
+        assertEquals(2, result.size());
+
+        assertEquals(player1.getId(), result.get(0).getId());
+        assertEquals(player1.getName(), result.get(0).getName());
+        assertEquals(player1.getTotalPoints(), result.get(0).getTotalPoints());
+
+        assertEquals(player2.getId(), result.get(1).getId());
+        assertEquals(player2.getName(), result.get(1).getName());
+        assertEquals(player2.getTotalPoints(), result.get(1).getTotalPoints());
+
+        verify(playerRepository, times(1)).findAllByLeagueId(leagueId);
     }
 }

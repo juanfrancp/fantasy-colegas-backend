@@ -13,9 +13,11 @@ import com.fantasycolegas.fantasy_colegas_backend.repository.RosterPlayerReposit
 import jakarta.transaction.Transactional;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * @author Juan Francisco Carceles
@@ -35,15 +37,17 @@ public class PlayerService {
     private final LeagueRepository leagueRepository;
     private final LeagueService leagueService;
     private final RosterPlayerRepository rosterPlayerRepository;
+    private final FileStorageService fileStorageService;
 
     /**
      * Constructor del servicio que inyecta las dependencias de los repositorios.
      */
-    public PlayerService(PlayerRepository playerRepository, LeagueRepository leagueRepository, LeagueService leagueService, RosterPlayerRepository rosterPlayerRepository) {
+    public PlayerService(PlayerRepository playerRepository, LeagueRepository leagueRepository, LeagueService leagueService, RosterPlayerRepository rosterPlayerRepository, FileStorageService fileStorageService) {
         this.playerRepository = playerRepository;
         this.leagueRepository = leagueRepository;
         this.leagueService = leagueService;
         this.rosterPlayerRepository = rosterPlayerRepository;
+        this.fileStorageService = fileStorageService;
     }
 
     /**
@@ -105,10 +109,11 @@ public class PlayerService {
         player.setLeague(league);
         player.setTotalPoints(0);
 
-        if (playerCreateDto.getImage() != null && !playerCreateDto.getImage().isBlank()) {
-            player.setImage(playerCreateDto.getImage());
-        } else {
-            player.setImage("https://example.com/default-player.jpg");
+        MultipartFile imageFile = playerCreateDto.getImage();
+
+        if (imageFile != null && !imageFile.isEmpty()) {
+            String imageUrl = fileStorageService.storeFile(imageFile, "player-pics");
+            player.setImage("/uploads/player-pics/" +  imageUrl);
         }
 
         Player savedPlayer = playerRepository.save(player);
@@ -201,6 +206,28 @@ public class PlayerService {
 
         Player updatedPlayer = playerRepository.save(player);
         return mapToPlayerResponseDto(updatedPlayer);
+    }
+
+    /**
+     * Obtiene todos los jugadores de una liga específica y los convierte a DTOs.
+     *
+     * @param leagueId El ID de la liga.
+     * @return Una lista de DTOs de jugadores.
+     */
+    public List<PlayerResponseDto> getPlayersByLeague(Long leagueId) {
+        List<Player> players = playerRepository.findAllByLeagueId(leagueId);
+        return players.stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+    }
+
+    private PlayerResponseDto convertToDto(Player player) {
+        return new PlayerResponseDto(
+                player.getId(),
+                player.getName(),
+                player.getImage(),
+                player.getTotalPoints()
+        );
     }
 
     /**
