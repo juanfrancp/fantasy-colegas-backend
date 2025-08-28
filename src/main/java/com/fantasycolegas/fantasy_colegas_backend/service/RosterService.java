@@ -1,7 +1,9 @@
 package com.fantasycolegas.fantasy_colegas_backend.service;
 
+import com.fantasycolegas.fantasy_colegas_backend.dto.request.ReplacePlayerDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.request.RosterCreateDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.request.RosterPlayerDto;
+import com.fantasycolegas.fantasy_colegas_backend.dto.response.PlayerResponseDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.response.RosterPlayerResponseDto;
 import com.fantasycolegas.fantasy_colegas_backend.model.League;
 import com.fantasycolegas.fantasy_colegas_backend.model.Player;
@@ -219,5 +221,43 @@ public class RosterService {
         rosterPlayerRepository.save(emptyPosition);
 
         return "Jugador " + playerToAdd.getName() + " añadido a tu equipo con éxito.";
+    }
+
+    public List<PlayerResponseDto> getAvailablePlayers(Long leagueId, Long userId) {
+        // 1. Obtiene los IDs de los jugadores que el usuario ya tiene.
+        List<Long> currentPlayerIds = rosterPlayerRepository.findByUserIdAndLeagueId(userId, leagueId)
+                .stream()
+                .map(rosterPlayer -> rosterPlayer.getPlayer().getId())
+                .collect(Collectors.toList());
+
+        // 2. Busca en la BBDD todos los jugadores de la liga excepto los que ya tiene.
+        List<Player> availablePlayers = playerRepository.findAvailablePlayers(leagueId, currentPlayerIds);
+
+        // 3. Conviértelos a DTO para enviarlos al frontend.
+        return availablePlayers.stream()
+                .map(player -> new PlayerResponseDto(player.getId(), player.getName(), player.getImage(), player.getTotalPoints()))
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public String replacePlayerInRoster(Long leagueId, Long userId, ReplacePlayerDto replacePlayerDto) {
+        // 1. Encuentra la entrada del jugador a eliminar en el roster.
+        RosterPlayer playerToRemove = rosterPlayerRepository.findByUserIdAndLeagueId(userId, leagueId).stream()
+                .filter(rp -> rp.getPlayer().getId().equals(replacePlayerDto.getPlayerToRemoveId()))
+                .findFirst()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "El jugador a eliminar no está en tu equipo."));
+
+        // 2. Encuentra al jugador que se va a añadir.
+        Player playerToAdd = playerRepository.findById(replacePlayerDto.getPlayerToAddId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "El jugador a añadir no existe."));
+
+        // 3. Simplemente, cambia el jugador en la entrada del roster existente.
+        //    Esto conserva el rol y la posición.
+        playerToRemove.setPlayer(playerToAdd);
+
+        // 4. Guarda los cambios. Como es transaccional, esto es una operación atómica.
+        rosterPlayerRepository.save(playerToRemove);
+
+        return "Jugador " + playerToRemove.getPlayer().getName() + " reemplazado por " + playerToAdd.getName() + " con éxito.";
     }
 }

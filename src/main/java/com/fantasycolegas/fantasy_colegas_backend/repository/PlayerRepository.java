@@ -3,6 +3,8 @@ package com.fantasycolegas.fantasy_colegas_backend.repository;
 import com.fantasycolegas.fantasy_colegas_backend.model.League;
 import com.fantasycolegas.fantasy_colegas_backend.model.Player;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -45,4 +47,7 @@ public interface PlayerRepository extends JpaRepository<Player, Long> {
     List<Player> findByLeagueIdAndIsPlaceholderFalse(Long leagueId);
 
     void deleteAllByLeague(League league);
+
+    @Query("SELECT p FROM Player p WHERE p.league.id = :leagueId AND p.id NOT IN :playerIds")
+    List<Player> findAvailablePlayers(@Param("leagueId") Long leagueId, @Param("playerIds") List<Long> playerIds);
 }

@@ -147,3 +147,49 @@ INSERT INTO player_match_stats (match_id, player_id, goles_marcados, fallos_clar
 (1, 4, 1, 0, 1, 0, 0, 0, 1, 3, 1, 0, 50, 8, 5, 3, 2, 90, 0, 0, 12, 0),
 -- Partido 1, Campo 'El Matador' (player_id=5)
 (1, 5, 2, 1, 0, 0, 0, 0, 2, 1, 0, 0, 15, 4, 2, 5, 4, 90, 1, 0, 10, 0);
+
+-- #####################################################################################
+-- # LIGA DE PRUEBA (TAMAÑO 3)
+-- #####################################################################################
+
+-- 1. CREACIÓN DE LA LIGA
+-- Se crea la liga "Trío de Ases" con ID 6 y tamaño de equipo 3.
+INSERT INTO leagues (name, description, image, is_private, join_code, number_of_players, team_size) VALUES
+('Trío de Ases', 'Liga de prueba para equipos de 3.', NULL, TRUE, 'TRIO3', 3, 3);
+
+-- 2. ASIGNACIÓN DE USUARIOS A LA LIGA
+-- admin (ID 1) es el administrador. ana_trader (ID 2) y carlos_pro (ID 3) son participantes.
+INSERT INTO user_league_roles (user_id, league_id, role) VALUES
+(1, 6, 'ADMIN'),
+(2, 6, 'PARTICIPANT'),
+(3, 6, 'PARTICIPANT');
+
+-- 3. CREACIÓN DE JUGADORES PARA LA LIGA
+-- Se crean 5 nuevos jugadores y se asocian a la liga con ID 6. Tienen puntos iniciales.
+INSERT INTO players (name, image, total_points, league_id, is_placeholder) VALUES
+('El Guardián', NULL, 85, 6, FALSE),  -- ID: 20
+('El Francotirador', NULL, 110, 6, FALSE), -- ID: 21
+('La Sombra', NULL, 95, 6, FALSE),   -- ID: 22
+('El Cíclope', NULL, 70, 6, FALSE),    -- ID: 23
+('El Coloso', NULL, 120, 6, FALSE);   -- ID: 24
+
+-- 4. CREACIÓN DE EQUIPOS (ROSTERS) PARA CADA USUARIO
+-- Se asigna un equipo completo de 3 jugadores a cada participante de la liga "Trío de Ases".
+
+-- Equipo para 'admin' (user_id = 1)
+INSERT INTO roster_players (user_id, league_id, player_id, role) VALUES
+(1, 6, 20, 'PORTERO'), -- El Guardián (Portero)
+(1, 6, 21, 'CAMPO'), -- El Francotirador (Campo)
+(1, 6, 22, 'CAMPO'); -- La Sombra (Campo)
+
+-- Equipo para 'ana_trader' (user_id = 2)
+INSERT INTO roster_players (user_id, league_id, player_id, role) VALUES
+(2, 6, 20, 'PORTERO'), -- El Guardián (Portero)
+(2, 6, 23, 'CAMPO'), -- El Cíclope (Campo)
+(2, 6, 24, 'CAMPO'); -- El Coloso (Campo)
+
+-- Equipo para 'carlos_pro' (user_id = 3)
+INSERT INTO roster_players (user_id, league_id, player_id, role) VALUES
+(3, 6, 20, 'PORTERO'), -- El Guardián (Portero)
+(3, 6, 21, 'CAMPO'), -- El Francotirador (Campo)
+(3, 6, 24, 'CAMPO'); -- El Coloso (Campo)

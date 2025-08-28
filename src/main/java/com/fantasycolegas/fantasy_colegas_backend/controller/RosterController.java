@@ -1,7 +1,9 @@
 package com.fantasycolegas.fantasy_colegas_backend.controller;
 
 import com.fantasycolegas.fantasy_colegas_backend.dto.request.AddPlayerToRosterDto;
+import com.fantasycolegas.fantasy_colegas_backend.dto.request.ReplacePlayerDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.request.RosterCreateDto;
+import com.fantasycolegas.fantasy_colegas_backend.dto.response.PlayerResponseDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.response.RosterPlayerResponseDto;
 import com.fantasycolegas.fantasy_colegas_backend.security.CustomUserDetails;
 import com.fantasycolegas.fantasy_colegas_backend.service.RosterService;
@@ -58,6 +60,26 @@ public class RosterController {
     public ResponseEntity<String> addPlayerToRoster(@PathVariable Long leagueId, @Valid @RequestBody AddPlayerToRosterDto addPlayerDto, @AuthenticationPrincipal CustomUserDetails currentUser) {
         try {
             String message = rosterService.addPlayerToRoster(leagueId, currentUser.getId(), addPlayerDto.getPlayerId(), addPlayerDto.getPosition());
+            return new ResponseEntity<>(message, HttpStatus.OK);
+        } catch (ResponseStatusException e) {
+            return ResponseEntity.status(e.getStatusCode()).body(e.getReason());
+        }
+    }
+
+    @GetMapping("/leagues/{leagueId}/rosters/available-players")
+    public ResponseEntity<?> getAvailablePlayers(@PathVariable Long leagueId, @AuthenticationPrincipal CustomUserDetails currentUser) {
+        try {
+            List<PlayerResponseDto> availablePlayers = rosterService.getAvailablePlayers(leagueId, currentUser.getId());
+            return ResponseEntity.ok(availablePlayers);
+        } catch (ResponseStatusException e) {
+            return ResponseEntity.status(e.getStatusCode()).body(e.getReason());
+        }
+    }
+
+    @PostMapping("/leagues/{leagueId}/rosters/replace")
+    public ResponseEntity<String> replacePlayerInRoster(@PathVariable Long leagueId, @Valid @RequestBody ReplacePlayerDto replacePlayerDto, @AuthenticationPrincipal CustomUserDetails currentUser) {
+        try {
+            String message = rosterService.replacePlayerInRoster(leagueId, currentUser.getId(), replacePlayerDto);
             return new ResponseEntity<>(message, HttpStatus.OK);
         } catch (ResponseStatusException e) {
             return ResponseEntity.status(e.getStatusCode()).body(e.getReason());
