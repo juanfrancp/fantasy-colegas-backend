@@ -40,7 +40,7 @@ public class LeagueService {
     private final LeagueJoinRequestRepository leagueJoinRequestRepository;
     private final PlayerRepository playerRepository;
     private final RosterPlayerRepository rosterPlayerRepository;
-    private PlayerMatchStatsRepository playerMatchStatsRepository;
+    private final PlayerMatchStatsRepository playerMatchStatsRepository;
     private final FileStorageService fileStorageService;
     private final MatchRepository matchRepository;
 
@@ -162,9 +162,11 @@ public class LeagueService {
     }
 
     /**
-     * Actualiza el tamaño del equipo de una liga.
+     * Actualiza el tamaño del equipo de una liga y ajusta los rosters de todos los miembros.
      * <p>
      * Solo los administradores de la liga pueden realizar esta acción.
+     * Si el tamaño aumenta, se añaden jugadores "vacíos".
+     * Si el tamaño disminuye, se eliminan jugadores de campo sobrantes.
      * </p>
      *
      * @param leagueId El ID de la liga.
@@ -174,16 +176,96 @@ public class LeagueService {
      */
     @Transactional
     public LeagueResponseDto updateLeagueTeamSize(Long leagueId, LeagueTeamSizeUpdateDto teamSizeUpdateDto, Long userId) {
+        System.out.println("--- INICIO: updateLeagueTeamSize ---");
+        System.out.println("LeagueID: " + leagueId + ", NewSize: " + teamSizeUpdateDto.getTeamSize() + ", UserID: " + userId);
+
+        // 1. Validaciones
         if (!checkIfUserIsAdmin(leagueId, userId)) {
+            System.out.println("ERROR: El usuario " + userId + " no es admin.");
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Solo los administradores pueden cambiar el tamaño del equipo.");
         }
+        League league = leagueRepository.findById(leagueId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Liga no encontrada."));
 
-        League league = leagueRepository.findById(leagueId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Liga no encontrada."));
+        int oldTeamSize = league.getTeamSize();
+        int newTeamSize = teamSizeUpdateDto.getTeamSize();
+        System.out.println("Tamaño antiguo: " + oldTeamSize + " -> Tamaño nuevo: " + newTeamSize);
 
-        league.setTeamSize(teamSizeUpdateDto.getTeamSize());
+        if (oldTeamSize == newTeamSize) {
+            System.out.println("INFO: No hay cambios de tamaño. Saliendo.");
+            return mapToLeagueResponseDto(league);
+        }
 
+        // 2. Obtener placeholder
+        Player placeholderPlayer = playerRepository.findByIsPlaceholderTrue()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Jugador placeholder no encontrado."));
+        System.out.println("Placeholder encontrado con ID: " + placeholderPlayer.getId());
+
+        // 3. Obtener todos los miembros
+        List<User> members = league.getUserRoles().stream().map(UserLeagueRole::getUser).toList();
+        System.out.println("Encontrados " + members.size() + " miembros en la liga.");
+
+        // 4. Iterar y ajustar rosters
+        for (User member : members) {
+            System.out.println("\n--- Procesando miembro ID: " + member.getId() + " (" + member.getUsername() + ") ---");
+            List<RosterPlayer> userRoster = rosterPlayerRepository.findByUserIdAndLeagueId(member.getId(), leagueId);
+            int currentRosterSize = userRoster.size();
+            System.out.println("Tamaño actual de su roster: " + currentRosterSize);
+
+            if (newTeamSize > currentRosterSize) {
+                int playersToAdd = newTeamSize - currentRosterSize;
+                System.out.println("DECISIÓN: Añadir " + playersToAdd + " jugador(es) vacíos.");
+                List<RosterPlayer> newSlots = new ArrayList<>();
+                for (int i = 0; i < playersToAdd; i++) {
+                    RosterPlayer newSlot = new RosterPlayer();
+                    newSlot.setUser(member);
+                    newSlot.setLeague(league);
+                    newSlot.setPlayer(placeholderPlayer);
+                    newSlot.setRole(PlayerTeamRole.CAMPO);
+                    newSlots.add(newSlot);
+                }
+                if (!newSlots.isEmpty()) {
+                    rosterPlayerRepository.saveAll(newSlots);
+                    System.out.println("ACCIÓN: " + newSlots.size() + " huecos guardados en la BBDD.");
+                }
+
+            } else if (newTeamSize < currentRosterSize) {
+                int playersToRemoveCount = currentRosterSize - newTeamSize;
+                System.out.println("DECISIÓN: Eliminar " + playersToRemoveCount + " jugador(es).");
+
+                List<RosterPlayer> placeholders = userRoster.stream()
+                        .filter(rp -> rp.getRole() == PlayerTeamRole.CAMPO && rp.getPlayer().isPlaceholder())
+                        .limit(playersToRemoveCount)
+                        .toList();
+
+                if (!placeholders.isEmpty()) {
+                    rosterPlayerRepository.deleteAll(placeholders);
+                    System.out.println("ACCIÓN: " + placeholders.size() + " placeholders eliminados.");
+                }
+
+                int remainingToRemove = playersToRemoveCount - placeholders.size();
+                if (remainingToRemove > 0) {
+                    List<RosterPlayer> realFieldPlayers = userRoster.stream()
+                            .filter(rp -> rp.getRole() == PlayerTeamRole.CAMPO && !rp.getPlayer().isPlaceholder())
+                            .limit(remainingToRemove)
+                            .toList();
+
+                    if (!realFieldPlayers.isEmpty()) {
+                        rosterPlayerRepository.deleteAll(realFieldPlayers);
+                        System.out.println("ACCIÓN: " + realFieldPlayers.size() + " jugadores de campo reales eliminados.");
+                    }
+                }
+            }
+        }
+
+        // 5. Guardar la liga
+        league.setTeamSize(newTeamSize);
         leagueRepository.save(league);
-        return mapToLeagueResponseDto(league);
+        System.out.println("INFO: Tamaño de la liga actualizado en la BBDD.");
+        System.out.println("--- FIN: updateLeagueTeamSize ---");
+
+        League updatedLeague = leagueRepository.findById(leagueId).get();
+        return mapToLeagueResponseDto(updatedLeague);
     }
 
     /**

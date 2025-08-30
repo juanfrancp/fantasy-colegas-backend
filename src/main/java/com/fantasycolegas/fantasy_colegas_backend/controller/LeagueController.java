@@ -22,7 +22,6 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -112,7 +111,7 @@ public class LeagueController {
      * @return Un objeto {@link LeagueResponseDto} de la liga actualizada.
      */
     @PatchMapping("/{leagueId}/team-size")
-    public ResponseEntity<?> updateTeamSize(@PathVariable Long leagueId, @RequestBody @Valid LeagueTeamSizeUpdateDto teamSizeUpdateDto, @AuthenticationPrincipal CustomUserDetails currentUser) {
+    public ResponseEntity<?> updateLeagueTeamSize(@PathVariable Long leagueId, @RequestBody @Valid LeagueTeamSizeUpdateDto teamSizeUpdateDto, @AuthenticationPrincipal CustomUserDetails currentUser) {
         try {
             LeagueResponseDto updatedLeague = leagueService.updateLeagueTeamSize(leagueId, teamSizeUpdateDto, currentUser.getId());
             return ResponseEntity.ok(updatedLeague);
