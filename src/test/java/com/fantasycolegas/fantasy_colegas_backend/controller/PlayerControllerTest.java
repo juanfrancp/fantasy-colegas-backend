@@ -20,6 +20,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.context.annotation.Primary;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -35,6 +36,7 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
@@ -94,17 +96,14 @@ class PlayerControllerTest {
     @Test
     @WithTestUser(id = MOCK_USER_ID)
     void createPlayer_whenAuthenticated_shouldReturnCreated() throws Exception {
-        PlayerCreateDto createDto = new PlayerCreateDto();
-        createDto.setName("New Player");
         PlayerResponseDto responseDto = new PlayerResponseDto(MOCK_PLAYER_ID, "New Player", null, 0);
 
         when(playerService.createPlayer(eq(MOCK_LEAGUE_ID), any(PlayerCreateDto.class), eq(MOCK_USER_ID)))
                 .thenReturn(responseDto);
 
-        mockMvc.perform(post("/api/leagues/{leagueId}/players", MOCK_LEAGUE_ID)
-                        .with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(createDto)))
+        mockMvc.perform(multipart("/api/leagues/{leagueId}/players", MOCK_LEAGUE_ID)
+                        .param("name", "New Player")
+                        .with(csrf()))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.name", is("New Player")));
     }
@@ -125,17 +124,18 @@ class PlayerControllerTest {
     @Test
     @WithTestUser(id = MOCK_USER_ID)
     void updatePlayer_whenAuthenticated_shouldReturnOk() throws Exception {
-        PlayerUpdateDto updateDto = new PlayerUpdateDto();
-        updateDto.setName("Updated Name");
         PlayerResponseDto responseDto = new PlayerResponseDto(MOCK_PLAYER_ID, "Updated Name", null, 0);
 
         when(playerService.updatePlayer(eq(MOCK_LEAGUE_ID), eq(MOCK_PLAYER_ID), any(PlayerUpdateDto.class), eq(MOCK_USER_ID)))
                 .thenReturn(responseDto);
 
-        mockMvc.perform(patch("/api/leagues/{leagueId}/players/{playerId}", MOCK_LEAGUE_ID, MOCK_PLAYER_ID)
-                        .with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(updateDto)))
+        mockMvc.perform(multipart("/api/leagues/{leagueId}/players/{playerId}", MOCK_LEAGUE_ID, MOCK_PLAYER_ID)
+                        .with(request -> {
+                            request.setMethod("PATCH");
+                            return request;
+                        })
+                        .param("name", "Updated Name")
+                        .with(csrf()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name", is("Updated Name")));
     }
@@ -193,32 +193,24 @@ class PlayerControllerTest {
     @Test
     @WithTestUser(id = MOCK_USER_ID)
     void createPlayer_whenServiceThrowsException_shouldReturnCorrectStatus() throws Exception {
-        PlayerCreateDto createDto = new PlayerCreateDto();
-        createDto.setName("New Player");
-
         when(playerService.createPlayer(eq(MOCK_LEAGUE_ID), any(PlayerCreateDto.class), eq(MOCK_USER_ID)))
                 .thenThrow(new ResponseStatusException(HttpStatus.FORBIDDEN, "No tienes permisos"));
 
-        mockMvc.perform(post("/api/leagues/{leagueId}/players", MOCK_LEAGUE_ID)
-                        .with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(createDto)))
+        mockMvc.perform(multipart("/api/leagues/{leagueId}/players", MOCK_LEAGUE_ID)
+                        .param("name", "New Player")
+                        .with(csrf()))
                 .andExpect(status().isForbidden());
     }
 
     @Test
     @WithTestUser(id = MOCK_USER_ID)
     void createPlayer_whenAuthenticatedButNotAdmin_shouldReturnForbidden() throws Exception {
-        PlayerCreateDto createDto = new PlayerCreateDto();
-        createDto.setName("Player by non-admin");
-
         when(playerService.createPlayer(eq(MOCK_LEAGUE_ID), any(PlayerCreateDto.class), eq(MOCK_USER_ID)))
                 .thenThrow(new ResponseStatusException(HttpStatus.FORBIDDEN, "No tienes permisos de administrador"));
 
-        mockMvc.perform(post("/api/leagues/{leagueId}/players", MOCK_LEAGUE_ID)
-                        .with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(createDto)))
+        mockMvc.perform(multipart("/api/leagues/{leagueId}/players", MOCK_LEAGUE_ID)
+                        .param("name", "Player by non-admin")
+                        .with(csrf()))
                 .andExpect(status().isForbidden());
     }
 
@@ -275,16 +267,55 @@ class PlayerControllerTest {
     @Test
     @WithTestUser(id = MOCK_USER_ID)
     void updatePlayer_whenAuthenticatedButNotAdmin_shouldReturnForbidden() throws Exception {
-        PlayerUpdateDto updateDto = new PlayerUpdateDto();
-        updateDto.setName("Attempted Update");
-
         when(playerService.updatePlayer(eq(MOCK_LEAGUE_ID), eq(MOCK_PLAYER_ID), any(PlayerUpdateDto.class), eq(MOCK_USER_ID)))
                 .thenThrow(new ResponseStatusException(HttpStatus.FORBIDDEN, "Acceso denegado"));
 
-        mockMvc.perform(patch("/api/leagues/{leagueId}/players/{playerId}", MOCK_LEAGUE_ID, MOCK_PLAYER_ID)
-                        .with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(updateDto)))
+        mockMvc.perform(multipart("/api/leagues/{leagueId}/players/{playerId}", MOCK_LEAGUE_ID, MOCK_PLAYER_ID)
+                        .with(request -> {
+                            request.setMethod("PATCH");
+                            return request;
+                        })
+                        .param("name", "Attempted Update")
+                        .with(csrf()))
                 .andExpect(status().isForbidden());
+    }
+
+    @Test
+    @WithTestUser(id = MOCK_USER_ID)
+    void getPlayersByLeague_shouldReturnPlayerList() throws Exception {
+        PlayerResponseDto player1 = new PlayerResponseDto(1L, "Player One", null, 10);
+        PlayerResponseDto player2 = new PlayerResponseDto(2L, "Player Two", null, 20);
+        List<PlayerResponseDto> playerList = List.of(player1, player2);
+
+        when(playerService.getPlayersByLeague(MOCK_LEAGUE_ID)).thenReturn(playerList);
+
+        mockMvc.perform(get("/api/players/league/{leagueId}", MOCK_LEAGUE_ID))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.size()", is(2))) // Verifica que la lista tiene 2 elementos
+                .andExpect(jsonPath("$[0].name", is("Player One")))
+                .andExpect(jsonPath("$[1].name", is("Player Two")));
+    }
+
+    @Test
+    @WithTestUser(id = MOCK_USER_ID)
+    void createPlayer_withImage_shouldReturnCreated() throws Exception {
+        PlayerResponseDto responseDto = new PlayerResponseDto(MOCK_PLAYER_ID, "New Player With Image", "/uploads/player-pics/test.png", 0);
+
+        MockMultipartFile mockImageFile = new MockMultipartFile(
+                "image",
+                "test.png",
+                MediaType.IMAGE_PNG_VALUE,
+                "test image data".getBytes()
+        );
+
+        when(playerService.createPlayer(eq(MOCK_LEAGUE_ID), any(PlayerCreateDto.class), eq(MOCK_USER_ID)))
+                .thenReturn(responseDto);
+
+        mockMvc.perform(multipart("/api/leagues/{leagueId}/players", MOCK_LEAGUE_ID)
+                        .file(mockImageFile) // Adjuntamos el archivo simulado
+                        .param("name", "New Player With Image")
+                        .with(csrf()))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.image", is("/uploads/player-pics/test.png")));
     }
 }

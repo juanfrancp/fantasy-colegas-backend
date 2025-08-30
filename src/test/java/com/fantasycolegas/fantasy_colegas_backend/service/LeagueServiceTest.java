@@ -3,6 +3,7 @@ package com.fantasycolegas.fantasy_colegas_backend.service;
 import com.fantasycolegas.fantasy_colegas_backend.dto.request.LeagueCreateDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.request.LeagueTeamSizeUpdateDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.response.LeagueResponseDto;
+import com.fantasycolegas.fantasy_colegas_backend.dto.response.UserStandingsDto;
 import com.fantasycolegas.fantasy_colegas_backend.model.*;
 import com.fantasycolegas.fantasy_colegas_backend.model.enums.LeagueRole;
 import com.fantasycolegas.fantasy_colegas_backend.repository.*;
@@ -14,6 +15,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Collections;
@@ -44,6 +47,9 @@ class LeagueServiceTest {
     private PlayerMatchStatsRepository playerMatchStatsRepository;
     @Mock
     private MatchRepository matchRepository;
+    @Mock
+    private FileStorageService fileStorageService;
+
     @InjectMocks
     private LeagueService leagueService;
 
@@ -248,7 +254,13 @@ class LeagueServiceTest {
         League league = new League();
         league.setId(leagueId);
         league.setTeamSize(5);
-        when(userLeagueRoleRepository.findAllByLeagueId(leagueId)).thenReturn(java.util.Collections.singletonList(new UserLeagueRole(testUser, league, LeagueRole.ADMIN)));
+        UserLeagueRole adminRole = new UserLeagueRole(testUser, league, LeagueRole.ADMIN);
+        league.setUserRoles(Set.of(adminRole));
+        Player placeholderPlayer = new Player();
+        placeholderPlayer.setId(999L);
+        placeholderPlayer.setPlaceholder(true);
+        when(playerRepository.findByIsPlaceholderTrue()).thenReturn(Optional.of(placeholderPlayer));
+        when(userLeagueRoleRepository.findAllByLeagueId(leagueId)).thenReturn(Collections.singletonList(adminRole));
         when(leagueRepository.findById(leagueId)).thenReturn(Optional.of(league));
         LeagueTeamSizeUpdateDto updateDto = new LeagueTeamSizeUpdateDto();
         updateDto.setTeamSize(7);
@@ -256,18 +268,20 @@ class LeagueServiceTest {
         ArgumentCaptor<League> leagueCaptor = ArgumentCaptor.forClass(League.class);
         verify(leagueRepository, times(1)).save(leagueCaptor.capture());
         assertEquals(7, leagueCaptor.getValue().getTeamSize());
+        verify(rosterPlayerRepository, times(1)).saveAll(anyList());
     }
 
     @Test
     void updateLeagueTeamSize_whenUserIsNotAdmin_shouldThrowForbiddenException() {
         long leagueId = 51L;
-        League league = new League();
-        league.setId(leagueId);
-        when(userLeagueRoleRepository.findAllByLeagueId(leagueId)).thenReturn(java.util.Collections.singletonList(new UserLeagueRole(testUser, league, LeagueRole.PARTICIPANT)));
         LeagueTeamSizeUpdateDto updateDto = new LeagueTeamSizeUpdateDto();
         updateDto.setTeamSize(7);
-        ResponseStatusException exception = assertThrows(ResponseStatusException.class, () -> leagueService.updateLeagueTeamSize(leagueId, updateDto, testUser.getId()));
-        assertEquals(403, exception.getStatusCode().value());
+        when(userLeagueRoleRepository.findAllByLeagueId(leagueId)).thenReturn(Collections.emptyList());
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> leagueService.updateLeagueTeamSize(leagueId, updateDto, testUser.getId())
+        );
+
+        assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
         verify(leagueRepository, never()).save(any());
     }
 
@@ -349,32 +363,22 @@ class LeagueServiceTest {
 
     @Test
     void deleteLeague_whenUserIsAdmin_shouldDeleteLeagueAndAllRelatedData() {
-        // --- Arrange (Preparación) ---
         long leagueId = 90L;
         long userId = testUser.getId();
         League league = new League();
         league.setId(leagueId);
-
-        // 3. FORZAMOS QUE LA COMPROBACIÓN DE PERMISOS SEA EXITOSA
-        // Le decimos al "espía" del servicio que cuando se llame a checkIfUserIsAdmin, devuelva 'true'.
-        doReturn(true).when(leagueService).checkIfUserIsAdmin(leagueId, userId);
-
-        // 4. Preparamos las respuestas de los repositorios que se usarán DESPUÉS del check
+        UserLeagueRole adminRole = new UserLeagueRole(testUser, league, LeagueRole.ADMIN);
+        when(userLeagueRoleRepository.findAllByLeagueId(leagueId)).thenReturn(Collections.singletonList(adminRole));
         when(leagueRepository.findById(leagueId)).thenReturn(Optional.of(league));
-        when(matchRepository.findAllByLeague(league)).thenReturn(Collections.emptyList());
-
-        // --- Act (Ejecución) ---
+        when(matchRepository.findAllByLeague(league)).thenReturn(Collections.singletonList(new Match()));
         leagueService.deleteLeague(leagueId, userId);
-
-        // --- Assert (Verificación) ---
-        // Verificamos que se llame a la lógica de borrado correcta
-        verify(leagueJoinRequestRepository, times(1)).deleteAllByLeague(league);
-        verify(rosterPlayerRepository, times(1)).deleteAllByLeague(league);
-        verify(playerMatchStatsRepository, times(1)).deleteAllByMatchIn(anyList());
-        verify(matchRepository, times(1)).deleteAllByLeague(league);
-        verify(playerRepository, times(1)).deleteAllByLeague(league);
-        verify(userLeagueRoleRepository, times(1)).deleteAllByLeague(league);
-        verify(leagueRepository, times(1)).delete(league);
+        verify(leagueJoinRequestRepository).deleteAllByLeague(league);
+        verify(rosterPlayerRepository).deleteAllByLeague(league);
+        verify(playerMatchStatsRepository).deleteAllByMatchIn(anyList());
+        verify(matchRepository).deleteAllByLeague(league);
+        verify(playerRepository).deleteAllByLeague(league);
+        verify(userLeagueRoleRepository).deleteAllByLeague(league);
+        verify(leagueRepository).delete(league);
     }
 
     @Test
@@ -743,5 +747,98 @@ class LeagueServiceTest {
 
         assertNotNull(result);
         assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void getLeagueStandings_shouldReturnCorrectlyRankedStandings() {
+        long leagueId = 150L;
+        League league = new League();
+        league.setId(leagueId);
+
+        User user1 = new User(); user1.setId(1L); user1.setUsername("user1");
+        User user2 = new User(); user2.setId(2L); user2.setUsername("user2");
+
+        league.setUserRoles(Set.of(
+                new UserLeagueRole(user1, league, LeagueRole.PARTICIPANT),
+                new UserLeagueRole(user2, league, LeagueRole.PARTICIPANT)
+        ));
+
+        Player playerUser1 = new Player(); playerUser1.setTotalPoints(100);
+        Player playerUser2 = new Player(); playerUser2.setTotalPoints(150);
+
+        RosterPlayer rosterPlayer1 = new RosterPlayer(); rosterPlayer1.setPlayer(playerUser1);
+        RosterPlayer rosterPlayer2 = new RosterPlayer(); rosterPlayer2.setPlayer(playerUser2);
+
+        when(leagueRepository.findById(leagueId)).thenReturn(Optional.of(league));
+        when(rosterPlayerRepository.findByUserIdAndLeagueId(1L, leagueId)).thenReturn(Collections.singletonList(rosterPlayer1));
+        when(rosterPlayerRepository.findByUserIdAndLeagueId(2L, leagueId)).thenReturn(Collections.singletonList(rosterPlayer2));
+
+        List<UserStandingsDto> standings = leagueService.getLeagueStandings(leagueId);
+
+        assertNotNull(standings);
+        assertEquals(2, standings.size());
+        assertEquals(2L, standings.get(0).getUserId());
+        assertEquals(150, standings.get(0).getTotalPoints());
+        assertEquals(1L, standings.get(1).getUserId());
+        assertEquals(100, standings.get(1).getTotalPoints());
+    }
+
+    @Test
+    void uploadLeagueImage_whenLeagueExists_shouldStoreImageAndReturnPath() {
+        // Arrange
+        long leagueId = 160L;
+        League league = new League();
+        league.setId(leagueId);
+
+        // Creamos un archivo simulado para la prueba
+        MultipartFile mockImageFile = new MockMultipartFile(
+                "file",
+                "test-image.png",
+                "image/png",
+                "test image data".getBytes()
+        );
+
+        String expectedFileName = "unique-file-name.png";
+        String expectedPath = "/uploads/league-pics/" + expectedFileName;
+
+        when(leagueRepository.findById(leagueId)).thenReturn(Optional.of(league));
+        // Simulamos que el FileStorageService guarda el archivo y devuelve el nombre único
+        when(fileStorageService.storeFile(mockImageFile, "league-pics")).thenReturn(expectedFileName);
+
+        // Act
+        String resultPath = leagueService.uploadLeagueImage(leagueId, mockImageFile);
+
+        // Assert
+        assertNotNull(resultPath);
+        assertEquals(expectedPath, resultPath);
+
+        ArgumentCaptor<League> leagueCaptor = ArgumentCaptor.forClass(League.class);
+        verify(leagueRepository, times(1)).save(leagueCaptor.capture());
+        assertEquals(expectedPath, leagueCaptor.getValue().getImage());
+    }
+
+    @Test
+    void getLeagueMembers_whenLeagueExists_shouldReturnListOfUsers() {
+        long leagueId = 170L;
+        League league = new League();
+        league.setId(leagueId);
+
+        User user1 = new User(); user1.setId(1L); user1.setUsername("user1");
+        User user2 = new User(); user2.setId(2L); user2.setUsername("user2");
+
+        Set<UserLeagueRole> userRoles = Set.of(
+                new UserLeagueRole(user1, league, LeagueRole.ADMIN),
+                new UserLeagueRole(user2, league, LeagueRole.PARTICIPANT)
+        );
+        league.setUserRoles(userRoles);
+
+        when(leagueRepository.findById(leagueId)).thenReturn(Optional.of(league));
+
+        List<User> members = leagueService.getLeagueMembers(leagueId);
+
+        assertNotNull(members);
+        assertEquals(2, members.size());
+        assertTrue(members.stream().anyMatch(u -> u.getId().equals(1L)));
+        assertTrue(members.stream().anyMatch(u -> u.getId().equals(2L)));
     }
 }

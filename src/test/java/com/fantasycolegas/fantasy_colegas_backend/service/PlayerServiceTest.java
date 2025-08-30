@@ -17,6 +17,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Arrays;
@@ -39,6 +41,8 @@ class PlayerServiceTest {
     private LeagueService leagueService;
     @Mock
     private RosterPlayerRepository rosterPlayerRepository;
+    @Mock
+    private FileStorageService fileStorageService;
 
     @InjectMocks
     private PlayerService playerService;
@@ -290,40 +294,60 @@ class PlayerServiceTest {
 
     @Test
     void updatePlayer_whenUpdatingOnlyImage_shouldOnlyChangeImage() {
+        // Arrange
         player.setName("Initial Name");
+        PlayerUpdateDto updateDto = new PlayerUpdateDto();
+        updateDto.setName(null); // No se envía un nuevo nombre
+
+        // Creamos un archivo MultipartFile simulado
+        MultipartFile mockImageFile = new MockMultipartFile(
+                "image",
+                "updated_image.png",
+                "image/png",
+                "test image data".getBytes()
+        );
+        updateDto.setImage(mockImageFile);
 
         when(leagueService.checkIfUserIsAdmin(leagueId, userId)).thenReturn(true);
         when(playerRepository.findById(playerId)).thenReturn(Optional.of(player));
         when(playerRepository.save(any(Player.class))).thenAnswer(i -> i.getArgument(0));
+        // Simulamos que el guardado del archivo devuelve una ruta
+        when(fileStorageService.storeFile(eq(mockImageFile), anyString())).thenReturn("updated_image.png");
 
-        PlayerUpdateDto updateDto = new PlayerUpdateDto();
-        updateDto.setName(null);
-        updateDto.setImage("updated_image.png");
-
+        // Act
         PlayerResponseDto result = playerService.updatePlayer(leagueId, playerId, updateDto, userId);
 
-        assertEquals("updated_image.png", result.getImage());
-        assertEquals("Initial Name", player.getName());
+        // Assert
+        assertEquals("Initial Name", result.getName()); // El nombre no debe cambiar
+        // La imagen debe ser la ruta devuelta por el fileStorageService
+        assertEquals("/uploads/player-pics/updated_image.png", result.getImage());
+        verify(fileStorageService, times(1)).storeFile(any(MultipartFile.class), anyString());
     }
 
     @Test
-    void updatePlayer_withBlankStrings_shouldIgnoreChanges() {
+    void updatePlayer_withBlankNameAndEmptyImage_shouldIgnoreChanges() {
+        // Arrange
         player.setName("Initial Name");
         player.setImage("initial_image.png");
+        PlayerUpdateDto updateDto = new PlayerUpdateDto();
+        updateDto.setName("  "); // Nombre en blanco
+
+        // Creamos un archivo MultipartFile simulado y vacío
+        MultipartFile mockEmptyFile = new MockMultipartFile("image", new byte[0]);
+        updateDto.setImage(mockEmptyFile);
 
         when(leagueService.checkIfUserIsAdmin(leagueId, userId)).thenReturn(true);
         when(playerRepository.findById(playerId)).thenReturn(Optional.of(player));
         when(playerRepository.save(any(Player.class))).thenReturn(player);
 
-        PlayerUpdateDto updateDto = new PlayerUpdateDto();
-        updateDto.setName("  ");
-        updateDto.setImage("");
-
+        // Act
         PlayerResponseDto result = playerService.updatePlayer(leagueId, playerId, updateDto, userId);
 
-        assertEquals("Initial Name", result.getName());
-        assertEquals("initial_image.png", result.getImage());
-        verify(playerRepository, times(1)).save(player);
+        // Assert
+        assertEquals("Initial Name", result.getName()); // El nombre no debe cambiar
+        assertEquals("initial_image.png", result.getImage()); // La imagen no debe cambiar
+        // Verificamos que el servicio de guardado de archivos NUNCA fue llamado
+        verify(fileStorageService, never()).storeFile(any(MultipartFile.class), anyString());
     }
 
     @Test
