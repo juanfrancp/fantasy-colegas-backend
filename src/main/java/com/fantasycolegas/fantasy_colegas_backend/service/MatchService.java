@@ -1,6 +1,7 @@
 package com.fantasycolegas.fantasy_colegas_backend.service;
 
 import com.fantasycolegas.fantasy_colegas_backend.dto.request.MatchCreateDto;
+import com.fantasycolegas.fantasy_colegas_backend.dto.request.MatchUpdateDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.response.MatchResponseDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.response.MatchTeamResponseDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.response.PlayerResponseDto;
@@ -97,5 +98,34 @@ public class MatchService {
                 player.getImage(),
                 player.getTotalPoints()
         );
+    }
+
+    @Transactional
+    public MatchResponseDto updateMatch(Long matchId, MatchUpdateDto updateDto) {
+        Match match = matchRepository.findById(matchId)
+                .orElseThrow(() -> new EntityNotFoundException("Match not found with id: " + matchId));
+
+        // Validar que el partido no se haya jugado ya
+        if (match.getMatchDate().isBefore(LocalDateTime.now())) {
+            throw new IllegalStateException("Cannot update a match that has already been played.");
+        }
+
+        // Actualizar equipos
+        List<Player> homePlayers = playerRepository.findAllById(updateDto.getHomeTeamPlayerIds());
+        List<Player> awayPlayers = playerRepository.findAllById(updateDto.getAwayTeamPlayerIds());
+
+        match.getHomeTeam().setName(updateDto.getHomeTeamName());
+        match.getHomeTeam().getPlayers().clear();
+        match.getHomeTeam().getPlayers().addAll(homePlayers);
+
+        match.getAwayTeam().setName(updateDto.getAwayTeamName());
+        match.getAwayTeam().getPlayers().clear();
+        match.getAwayTeam().getPlayers().addAll(awayPlayers);
+
+        // Actualizar fecha del partido
+        match.setMatchDate(updateDto.getMatchDate());
+
+        Match updatedMatch = matchRepository.save(match);
+        return convertToDto(updatedMatch);
     }
 }

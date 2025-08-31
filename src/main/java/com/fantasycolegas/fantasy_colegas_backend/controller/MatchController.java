@@ -1,6 +1,7 @@
 package com.fantasycolegas.fantasy_colegas_backend.controller;
 
 import com.fantasycolegas.fantasy_colegas_backend.dto.request.MatchCreateDto;
+import com.fantasycolegas.fantasy_colegas_backend.dto.request.MatchUpdateDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.response.MatchResponseDto;
 import com.fantasycolegas.fantasy_colegas_backend.service.MatchService;
 import jakarta.validation.Valid;
@@ -34,5 +35,13 @@ public class MatchController {
     public ResponseEntity<List<MatchResponseDto>> getPastMatches() {
         List<MatchResponseDto> pastMatches = matchService.getPastMatches();
         return ResponseEntity.ok(pastMatches);
+    }
+
+    @PutMapping("/{matchId}")
+    public ResponseEntity<MatchResponseDto> updateMatch(
+            @PathVariable Long matchId,
+            @Valid @RequestBody MatchUpdateDto updateDto) {
+        MatchResponseDto updatedMatch = matchService.updateMatch(matchId, updateDto);
+        return ResponseEntity.ok(updatedMatch);
     }
 }
