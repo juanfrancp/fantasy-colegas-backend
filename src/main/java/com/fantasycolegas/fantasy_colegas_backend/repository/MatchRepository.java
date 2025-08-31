@@ -5,6 +5,7 @@ import com.fantasycolegas.fantasy_colegas_backend.model.Match;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -40,4 +41,8 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
     void deleteAllByLeague(League league);
 
     List<Match> findAllByLeague(League league);
+
+    List<Match> findByMatchDateAfter(LocalDateTime date);
+
+    List<Match> findByMatchDateBefore(LocalDateTime date);
 }

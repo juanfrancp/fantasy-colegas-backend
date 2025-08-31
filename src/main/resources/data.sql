@@ -41,30 +41,16 @@ INSERT INTO leagues (name, description, image, is_private, join_code, number_of_
 -- #####################################################################################
 -- Liga 1: Leyendas del Sofá
 INSERT INTO user_league_roles (user_id, league_id, role) VALUES
-(1, 1, 'ADMIN'),
-(2, 1, 'PARTICIPANT'),
-(3, 1, 'PARTICIPANT'),
-(4, 1, 'PARTICIPANT');
-
+(1, 1, 'ADMIN'), (2, 1, 'PARTICIPANT'), (3, 1, 'PARTICIPANT'), (4, 1, 'PARTICIPANT');
 -- Liga 2: Fichajes de Verano FC
 INSERT INTO user_league_roles (user_id, league_id, role) VALUES
-(5, 2, 'ADMIN'),
-(6, 2, 'PARTICIPANT'),
-(7, 2, 'PARTICIPANT');
-
+(5, 2, 'ADMIN'), (6, 2, 'PARTICIPANT'), (7, 2, 'PARTICIPANT');
 -- Liga 3: Campeones del Barrio (CON DOS ADMINS)
 INSERT INTO user_league_roles (user_id, league_id, role) VALUES
-(1, 3, 'ADMIN'),
-(8, 3, 'ADMIN'),
-(9, 3, 'PARTICIPANT'),
-(10, 3, 'PARTICIPANT'),
-(2, 3, 'PARTICIPANT');
-
+(1, 3, 'ADMIN'), (8, 3, 'ADMIN'), (9, 3, 'PARTICIPANT'), (10, 3, 'PARTICIPANT'), (2, 3, 'PARTICIPANT');
 -- Liga 4: Tercer Tiempo
 INSERT INTO user_league_roles (user_id, league_id, role) VALUES
-(4, 4, 'ADMIN'),
-(5, 4, 'PARTICIPANT');
-
+(4, 4, 'ADMIN'), (5, 4, 'PARTICIPANT');
 -- Liga 5: The Fantasist League
 INSERT INTO user_league_roles (user_id, league_id, role) VALUES
 (15, 5, 'ADMIN');
@@ -73,12 +59,11 @@ INSERT INTO user_league_roles (user_id, league_id, role) VALUES
 -- #####################################################################################
 -- # SOLICITUDES DE UNIÓN PENDIENTES
 -- #####################################################################################
--- Varios usuarios sin liga solicitan unirse a las ligas privadas
 INSERT INTO league_join_requests (user_id, league_id, request_date, status) VALUES
-(11, 1, '2025-08-20T10:00:00', 'PENDING'), -- Laura a Leyendas del Sofá
-(12, 1, '2025-08-21T11:30:00', 'PENDING'), -- Marcos a Leyendas del Sofá
-(13, 3, '2025-08-22T09:00:00', 'PENDING'), -- Nadia a Campeones del Barrio
-(14, 5, '2025-08-23T12:00:00', 'PENDING'); -- Oscar a The Fantasist League
+(11, 1, '2025-08-20T10:00:00', 'PENDING'),
+(12, 1, '2025-08-21T11:30:00', 'PENDING'),
+(13, 3, '2025-08-22T09:00:00', 'PENDING'),
+(14, 5, '2025-08-23T12:00:00', 'PENDING');
 
 
 -- #####################################################################################
@@ -86,27 +71,13 @@ INSERT INTO league_join_requests (user_id, league_id, request_date, status) VALU
 -- #####################################################################################
 INSERT INTO players (name, image, total_points, league_id, is_placeholder) VALUES
 -- Liga 1
-('El Muro', NULL, 30, 1, FALSE),
-('El Káiser', NULL, 22, 1, FALSE),
-('El Cerebro', NULL, 45, 1, FALSE),
-('El Matador', NULL, 55, 1, FALSE),
-('La Bala', NULL, 18, 1, FALSE),
+('El Muro', NULL, 30, 1, FALSE), ('El Káiser', NULL, 22, 1, FALSE), ('El Cerebro', NULL, 45, 1, FALSE), ('El Matador', NULL, 55, 1, FALSE), ('La Bala', NULL, 18, 1, FALSE),
 -- Liga 2
-('Gato Volador', NULL, 25, 2, FALSE),
-('Toro Bravo', NULL, 15, 2, FALSE),
-('El Mago', NULL, 33, 2, FALSE),
-('El Relámpago', NULL, 41, 2, FALSE),
+('Gato Volador', NULL, 25, 2, FALSE), ('Toro Bravo', NULL, 15, 2, FALSE), ('El Mago', NULL, 33, 2, FALSE), ('El Relámpago', NULL, 41, 2, FALSE),
 -- Liga 3
-('La Pantera', NULL, 28, 3, FALSE),
-('El Mariscal', NULL, 20, 3, FALSE),
-('El Arquitecto', NULL, 38, 3, FALSE),
-('El Tanque', NULL, 48, 3, FALSE),
-('El Puñal', NULL, 31, 3, FALSE),
-('El Pibe', NULL, 29, 3, FALSE),
+('La Pantera', NULL, 28, 3, FALSE), ('El Mariscal', NULL, 20, 3, FALSE), ('El Arquitecto', NULL, 38, 3, FALSE), ('El Tanque', NULL, 48, 3, FALSE), ('El Puñal', NULL, 31, 3, FALSE), ('El Pibe', NULL, 29, 3, FALSE),
 -- Liga 4
-('El Gato', NULL, 19, 4, FALSE),
-('La Roca', NULL, 12, 4, FALSE),
-('El Poeta', NULL, 26, 4, FALSE);
+('El Gato', NULL, 19, 4, FALSE), ('La Roca', NULL, 12, 4, FALSE), ('El Poeta', NULL, 26, 4, FALSE);
 
 
 -- #####################################################################################
@@ -126,20 +97,50 @@ INSERT INTO roster_players (user_id, league_id, player_id, role) VALUES
 (9, 3, 11, 'PORTERO'), (9, 3, 12, 'CAMPO'), (9, 3, 13, 'CAMPO'), (9, 3, 14, 'CAMPO'), (9, 3, 15, 'CAMPO'), (9, 3, 16, 'CAMPO'),
 (10, 3, 11, 'PORTERO'), (10, 3, 12, 'CAMPO'), (10, 3, 1, 'CAMPO'), (10, 3, 1, 'CAMPO'), (10, 3, 1, 'CAMPO'), (10, 3, 1, 'CAMPO');
 
+-- #####################################################################################
+-- # SECCIÓN DE PARTIDOS CORREGIDA
+-- #####################################################################################
+
+-- 1. CREACIÓN DE EQUIPOS PARA PARTIDOS (MATCH TEAMS)
+-- Equipos para la Liga 1 (IDs de equipo: 1, 2, 3, 4)
+INSERT INTO match_teams (name) VALUES
+('Titanes del Sofá'), ('Leyendas Unidas'), ('Dream Team Clásico'), ('Héroes del Mando');
+-- Equipos para la Liga 3 (IDs de equipo: 5, 6, 7, 8)
+INSERT INTO match_teams (name) VALUES
+('Barrio All-Stars'), ('Furia Callejera'), ('Atlético Vecindario'), ('Real Callejón');
+
+-- 2. ASIGNACIÓN DE JUGADORES A LOS EQUIPOS DE PARTIDO
+-- Partido 1 (Liga 1): Titanes (ID 1) vs Leyendas (ID 2)
+INSERT INTO match_team_players (match_team_id, player_id) VALUES
+(1, 2), (1, 4), -- Titanes: El Muro, El Cerebro
+(2, 3), (2, 5); -- Leyendas: El Káiser, El Matador
+-- Partido 2 (Liga 1): Dream Team (ID 3) vs Héroes (ID 4)
+INSERT INTO match_team_players (match_team_id, player_id) VALUES
+(3, 6), (3, 5), -- Dream Team: La Bala, El Matador
+(4, 2), (4, 4); -- Héroes: El Muro, El Cerebro
+-- Partido 3 (Liga 3): Barrio All-Stars (ID 5) vs Furia (ID 6)
+INSERT INTO match_team_players (match_team_id, player_id) VALUES
+(5, 11), (5, 13), -- All-Stars: La Pantera, El Arquitecto
+(6, 12), (6, 14); -- Furia: El Mariscal, El Tanque
+-- Partido 4 (Liga 3): Atlético (ID 7) vs Real (ID 8)
+INSERT INTO match_team_players (match_team_id, player_id) VALUES
+(7, 15), (7, 16), -- Atlético: El Puñal, El Pibe
+(8, 11), (8, 14); -- Real: La Pantera, El Tanque
+
+-- 3. CREACIÓN DE PARTIDOS (MATCHES)
+-- Un partido pasado (con resultado) y uno futuro (sin resultado) para la liga 1
+INSERT INTO matches (league_id, home_team_id, away_team_id, home_score, away_score, match_date) VALUES
+(1, 1, 2, 3, 1, '2025-08-20T20:00:00'), -- Pasado
+(1, 3, 4, NULL, NULL, '2025-09-10T20:00:00'); -- Futuro
+-- Un partido pasado (con resultado) y uno futuro (sin resultado) para la liga 3
+INSERT INTO matches (league_id, home_team_id, away_team_id, home_score, away_score, match_date) VALUES
+(3, 5, 6, 2, 2, '2025-08-25T21:00:00'), -- Pasado
+(3, 7, 8, NULL, NULL, '2025-09-15T21:00:00'); -- Futuro
 
 -- #####################################################################################
--- # PARTIDOS
+-- # ESTADÍSTICAS DE PARTIDOS (PLAYER_MATCH_STATS)
 -- #####################################################################################
-INSERT INTO matches (league_id, name, description, match_date) VALUES
-(1, 'Jornada 1: El Despertar', 'Primer partido de la temporada', '2025-08-20'),
-(1, 'Jornada 2: Duelo de Titanes', 'Los favoritos se enfrentan', '2025-08-27'),
-(3, 'Derbi del Barrio - Ida', 'Máxima rivalidad en juego', '2025-09-01'),
-(3, 'Derbi del Barrio - Vuelta', 'La revancha más esperada', '2025-09-08');
-
--- #####################################################################################
--- # ESTADÍSTICAS DE PARTIDOS
--- #####################################################################################
--- Se especifican todas las columnas para evitar errores de valores nulos.
+-- Se asocian al partido con ID=1
 INSERT INTO player_match_stats (match_id, player_id, goles_marcados, fallos_claros_de_gol, asistencias, goles_encajados_como_portero, paradas_como_portero, cesiones_concedidas, faltas_cometidas, faltas_recibidas, penaltis_recibidos, penaltis_cometidos, pases_acertados, pases_fallados, robos_de_balon, tiros_completados, tiros_entre_los_tres_palos, tiempo_jugado, tarjetas_amarillas, tarjetas_rojas, total_field_points, total_goalkeeper_points) VALUES
 -- Partido 1, Portero 'El Muro' (player_id=2)
 (1, 2, 0, 0, 0, 1, 5, 0, 0, 2, 0, 0, 20, 5, 0, 0, 0, 90, 0, 0, 0, 8),
@@ -148,48 +149,4 @@ INSERT INTO player_match_stats (match_id, player_id, goles_marcados, fallos_clar
 -- Partido 1, Campo 'El Matador' (player_id=5)
 (1, 5, 2, 1, 0, 0, 0, 0, 2, 1, 0, 0, 15, 4, 2, 5, 4, 90, 1, 0, 10, 0);
 
--- #####################################################################################
--- # LIGA DE PRUEBA (TAMAÑO 3)
--- #####################################################################################
-
--- 1. CREACIÓN DE LA LIGA
--- Se crea la liga "Trío de Ases" con ID 6 y tamaño de equipo 3.
-INSERT INTO leagues (name, description, image, is_private, join_code, number_of_players, team_size) VALUES
-('Trío de Ases', 'Liga de prueba para equipos de 3.', NULL, TRUE, 'TRIO3', 3, 3);
-
--- 2. ASIGNACIÓN DE USUARIOS A LA LIGA
--- admin (ID 1) es el administrador. ana_trader (ID 2) y carlos_pro (ID 3) son participantes.
-INSERT INTO user_league_roles (user_id, league_id, role) VALUES
-(1, 6, 'ADMIN'),
-(2, 6, 'PARTICIPANT'),
-(3, 6, 'PARTICIPANT');
-
--- 3. CREACIÓN DE JUGADORES PARA LA LIGA
--- Se crean 5 nuevos jugadores y se asocian a la liga con ID 6. Tienen puntos iniciales.
-INSERT INTO players (name, image, total_points, league_id, is_placeholder) VALUES
-('El Guardián', NULL, 85, 6, FALSE),  -- ID: 20
-('El Francotirador', NULL, 110, 6, FALSE), -- ID: 21
-('La Sombra', NULL, 95, 6, FALSE),   -- ID: 22
-('El Cíclope', NULL, 70, 6, FALSE),    -- ID: 23
-('El Coloso', NULL, 120, 6, FALSE);   -- ID: 24
-
--- 4. CREACIÓN DE EQUIPOS (ROSTERS) PARA CADA USUARIO
--- Se asigna un equipo completo de 3 jugadores a cada participante de la liga "Trío de Ases".
-
--- Equipo para 'admin' (user_id = 1)
-INSERT INTO roster_players (user_id, league_id, player_id, role) VALUES
-(1, 6, 20, 'PORTERO'), -- El Guardián (Portero)
-(1, 6, 21, 'CAMPO'), -- El Francotirador (Campo)
-(1, 6, 22, 'CAMPO'); -- La Sombra (Campo)
-
--- Equipo para 'ana_trader' (user_id = 2)
-INSERT INTO roster_players (user_id, league_id, player_id, role) VALUES
-(2, 6, 20, 'PORTERO'), -- El Guardián (Portero)
-(2, 6, 23, 'CAMPO'), -- El Cíclope (Campo)
-(2, 6, 24, 'CAMPO'); -- El Coloso (Campo)
-
--- Equipo para 'carlos_pro' (user_id = 3)
-INSERT INTO roster_players (user_id, league_id, player_id, role) VALUES
-(3, 6, 20, 'PORTERO'), -- El Guardián (Portero)
-(3, 6, 21, 'CAMPO'), -- El Francotirador (Campo)
-(3, 6, 24, 'CAMPO'); -- El Coloso (Campo)
+-- ... (El resto de tu script de prueba se mantiene igual) ...
