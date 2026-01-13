@@ -1,6 +1,6 @@
 # Fantasy Colegas Backend
 
-El backend de **Fantasy Colegas** es una aplicación robusta construida con **Spring Boot** y **Java 17** que gestiona toda la lógica de negocio para una plataforma de ligas de fantasía de fútbol. Permite a los usuarios crear ligas personalizadas, gestionar sus equipos, seguir el rendimiento de los jugadores y calcular las puntuaciones de cada jornada de forma automática.
+El backend de **Fantasy Colegas** es una aplicación robusta construida con **Spring Boot** y **Java 24** que gestiona toda la lógica de negocio para una plataforma de ligas de fantasía de fútbol. Permite a los usuarios crear ligas personalizadas, gestionar sus equipos, seguir el rendimiento de los jugadores y calcular las puntuaciones de cada jornada de forma automática.
 
 ## Características Principales
 
