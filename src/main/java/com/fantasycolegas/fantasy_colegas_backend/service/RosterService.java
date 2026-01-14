@@ -187,37 +187,45 @@ public class RosterService {
      */
     @Transactional
     public String addPlayerToRoster(Long leagueId, Long userId, Long playerIdToAdd, PlayerTeamRole position) {
-        // 1. Validaciones básicas de existencia
+        // 1. Validaciones básicas
         League league = leagueRepository.findById(leagueId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Liga no encontrada."));
 
         Player playerToAdd = playerRepository.findById(playerIdToAdd)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "El jugador a añadir no existe."));
 
-        // 2. Verificar si el jugador ya está en el equipo
+        // 2. Verificar duplicados
         boolean playerAlreadyInRoster = rosterPlayerRepository.existsByUserIdAndLeagueIdAndPlayerId(userId, leagueId, playerIdToAdd);
         if (playerAlreadyInRoster) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El jugador ya se encuentra en tu equipo.");
         }
 
-        // 3. Obtener el equipo ACTUAL completo del usuario
+        // 3. Obtener el equipo ACTUAL
         List<RosterPlayer> currentRoster = rosterPlayerRepository.findByUserIdAndLeagueId(userId, leagueId);
 
-        // 4. Buscar si hay un hueco (Placeholder) disponible para ese rol
-        Optional<RosterPlayer> placeholderSlot = currentRoster.stream()
-                .filter(rp -> rp.getRole() == position && rp.getPlayer().isPlaceholder())
+        // 4. ESTRATEGIA DE BÚSQUEDA DE HUECO
+        // Paso A: Buscar hueco perfecto (mismo rol)
+        Optional<RosterPlayer> bestSlot = currentRoster.stream()
+                .filter(rp -> rp.getPlayer().isPlaceholder() && rp.getRole() == position)
                 .findFirst();
 
-        if (placeholderSlot.isPresent()) {
-            // ESCENARIO A: Existe una fila con placeholder -> La actualizamos
-            RosterPlayer slotToUpdate = placeholderSlot.get();
+        // Paso B: Si no hay perfecto, buscar CUALQUIER hueco (reciclaje)
+        if (bestSlot.isEmpty()) {
+            bestSlot = currentRoster.stream()
+                    .filter(rp -> rp.getPlayer().isPlaceholder())
+                    .findFirst();
+        }
+
+        if (bestSlot.isPresent()) {
+            // ESCENARIO A: Encontramos un hueco (perfecto o reciclado) -> Lo ocupamos
+            RosterPlayer slotToUpdate = bestSlot.get();
             slotToUpdate.setPlayer(playerToAdd);
-            slotToUpdate.setRole(position);
+            slotToUpdate.setRole(position); // IMPORTANTE: Forzamos el rol nuevo
             rosterPlayerRepository.save(slotToUpdate);
         } else {
-            // ESCENARIO B: No hay fila placeholder -> Comprobamos si podemos CREAR una nueva fila
+            // ESCENARIO B: No hay huecos de ningún tipo -> Intentamos CREAR
             if (currentRoster.size() < league.getTeamSize()) {
-                // Validar que no estemos añadiendo un segundo portero si ya hay uno real
+                // Validar restricción de porteros
                 if (position == PlayerTeamRole.PORTERO && currentRoster.stream().anyMatch(rp -> rp.getRole() == PlayerTeamRole.PORTERO)) {
                     throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ya tienes un portero en el equipo.");
                 }
@@ -232,7 +240,7 @@ public class RosterService {
                 newSlot.setRole(position);
                 rosterPlayerRepository.save(newSlot);
             } else {
-                // ESCENARIO C: El equipo está lleno (tamaño máximo alcanzado) y no hay placeholders
+                // ESCENARIO C: Equipo lleno y sin huecos
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tu equipo está lleno (" + currentRoster.size() + "/" + league.getTeamSize() + ") y no hay huecos libres.");
             }
         }
