@@ -275,7 +275,7 @@ public class RosterService {
                             player.getImage(),
                             totalCalculated, // Total
                             fieldPoints,     // Puntos Campo
-                            gkPoints         // Puntos Portero
+                            gkPoints
                     );
                 })
                 .collect(Collectors.toList());
