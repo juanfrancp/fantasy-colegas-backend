@@ -183,42 +183,61 @@ public class RosterService {
     }
 
     /**
-     * Añade un jugador a un equipo, ocupando una posición vacía (placeholder).
-     *
-     * @param leagueId      El ID de la liga.
-     * @param userId        El ID del usuario.
-     * @param playerIdToAdd El ID del jugador a añadir.
-     * @param position      El rol del jugador (PORTERO o CAMPO).
-     * @return Un mensaje de confirmación.
+     * Añade un jugador a un equipo.
+     * Si encuentra un hueco (placeholder), lo ocupa.
+     * Si no hay hueco pero el equipo no está lleno (faltan filas en BBDD), crea la fila nueva.
      */
     @Transactional
     public String addPlayerToRoster(Long leagueId, Long userId, Long playerIdToAdd, PlayerTeamRole position) {
-        Player playerToAdd = playerRepository.findById(playerIdToAdd).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "El jugador a añadir no existe."));
+        // 1. Validaciones básicas de existencia
+        League league = leagueRepository.findById(leagueId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Liga no encontrada."));
 
+        Player playerToAdd = playerRepository.findById(playerIdToAdd)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "El jugador a añadir no existe."));
+
+        // 2. Verificar si el jugador ya está en el equipo
         boolean playerAlreadyInRoster = rosterPlayerRepository.existsByUserIdAndLeagueIdAndPlayerId(userId, leagueId, playerIdToAdd);
         if (playerAlreadyInRoster) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El jugador ya se encuentra en tu equipo.");
         }
 
-        Player placeholderPlayer = playerRepository.findByIsPlaceholderTrue().orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "El jugador vacío no se encuentra en la base de datos. Contacta con el administrador."));
+        // 3. Obtener el equipo ACTUAL completo del usuario
+        List<RosterPlayer> currentRoster = rosterPlayerRepository.findByUserIdAndLeagueId(userId, leagueId);
 
-        Optional<RosterPlayer> emptyPositionOpt;
+        // 4. Buscar si hay un hueco (Placeholder) disponible para ese rol
+        Optional<RosterPlayer> placeholderSlot = currentRoster.stream()
+                .filter(rp -> rp.getRole() == position && rp.getPlayer().isPlaceholder())
+                .findFirst();
 
-        if (position == PlayerTeamRole.PORTERO) {
-            emptyPositionOpt = rosterPlayerRepository.findByUserIdAndLeagueIdAndRoleAndPlayerId(userId, leagueId, PlayerTeamRole.PORTERO, placeholderPlayer.getId());
+        if (placeholderSlot.isPresent()) {
+            // ESCENARIO A: Existe una fila con placeholder -> La actualizamos
+            RosterPlayer slotToUpdate = placeholderSlot.get();
+            slotToUpdate.setPlayer(playerToAdd);
+            slotToUpdate.setRole(position);
+            rosterPlayerRepository.save(slotToUpdate);
         } else {
-            emptyPositionOpt = rosterPlayerRepository.findFirstByUserIdAndLeagueIdAndRoleAndPlayerId(userId, leagueId, PlayerTeamRole.CAMPO, placeholderPlayer.getId());
+            // ESCENARIO B: No hay fila placeholder -> Comprobamos si podemos CREAR una nueva fila
+            if (currentRoster.size() < league.getTeamSize()) {
+                // Validar que no estemos añadiendo un segundo portero si ya hay uno real
+                if (position == PlayerTeamRole.PORTERO && currentRoster.stream().anyMatch(rp -> rp.getRole() == PlayerTeamRole.PORTERO)) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Ya tienes un portero en el equipo.");
+                }
+
+                User user = userRepository.findById(userId)
+                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
+
+                RosterPlayer newSlot = new RosterPlayer();
+                newSlot.setUser(user);
+                newSlot.setLeague(league);
+                newSlot.setPlayer(playerToAdd);
+                newSlot.setRole(position);
+                rosterPlayerRepository.save(newSlot);
+            } else {
+                // ESCENARIO C: El equipo está lleno (tamaño máximo alcanzado) y no hay placeholders
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tu equipo está lleno (" + currentRoster.size() + "/" + league.getTeamSize() + ") y no hay huecos libres.");
+            }
         }
-
-        if (emptyPositionOpt.isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No hay posiciones disponibles para el rol de " + position.name() + " en tu equipo.");
-        }
-
-        RosterPlayer emptyPosition = emptyPositionOpt.get();
-
-        emptyPosition.setPlayer(playerToAdd);
-
-        rosterPlayerRepository.save(emptyPosition);
 
         return "Jugador " + playerToAdd.getName() + " añadido a tu equipo con éxito.";
     }
