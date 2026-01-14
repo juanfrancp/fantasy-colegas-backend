@@ -23,4 +23,6 @@ public class PlayerResponseDto {
     private String name;
     private String image;
     private Integer totalPoints;
+    private double totalFieldPoints;
+    private double totalGoalkeeperPoints;
 }

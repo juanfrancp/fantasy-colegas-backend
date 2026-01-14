@@ -698,12 +698,29 @@ public class LeagueService {
 
     /**
      * Mapea una entidad {@link Player} a un DTO de respuesta.
-     *
-     * @param player La entidad {@link Player}.
-     * @return El DTO de respuesta {@link PlayerResponseDto}.
+     * Corregido para incluir el desglose de puntos (Campo vs Portero).
      */
     private PlayerResponseDto mapToPlayerResponseDto(Player player) {
-        return new PlayerResponseDto(player.getId(), player.getName(), player.getImage(), player.getTotalPoints());
+        // 1. Obtenemos los puntos desglosados usando las nuevas consultas del repositorio
+        Double fieldPoints = playerMatchStatsRepository.sumTotalFieldPointsByPlayer(player.getId());
+        Double gkPoints = playerMatchStatsRepository.sumTotalGoalkeeperPointsByPlayer(player.getId());
+
+        // 2. Protección contra nulos (aunque el COALESCE del repositorio debería evitarlo)
+        if (fieldPoints == null) fieldPoints = 0.0;
+        if (gkPoints == null) gkPoints = 0.0;
+
+        // 3. (Opcional) Recalcular el total para asegurar consistencia
+        int totalCalculated = (int) (fieldPoints + gkPoints);
+
+        // 4. Devolvemos el DTO con los 6 argumentos que ahora requiere el constructor
+        return new PlayerResponseDto(
+                player.getId(),
+                player.getName(),
+                player.getImage(),
+                totalCalculated, // O usa player.getTotalPoints() si prefieres el valor guardado
+                fieldPoints,
+                gkPoints
+        );
     }
 
     /**
@@ -803,18 +820,16 @@ public class LeagueService {
     public List<UserStandingsDto> getLeagueStandings(Long leagueId) {
         List<User> members = getLeagueMembers(leagueId);
 
-        // 2. Calcula los puntos para cada miembro.
         List<UserStandingsDto> standings = members.stream().map(user -> {
-            int totalPoints = rosterPlayerRepository.findByUserIdAndLeagueId(user.getId(), leagueId)
-                    .stream()
-                    .mapToInt(rosterPlayer -> rosterPlayer.getPlayer().getTotalPoints())
-                    .sum();
+            // CORRECCIÓN: Usamos calculateUserPoints en lugar de sumar el roster actual.
+            // Esto usa la tabla user_match_lineups (la instantánea) y respeta el rol (Portero/Campo).
+            double totalPoints = calculateUserPoints(leagueId, user.getId());
 
             return new UserStandingsDto(
                     user.getId(),
                     user.getUsername(),
                     user.getProfileImageUrl(),
-                    totalPoints
+                    (int) totalPoints // Casteamos a int si tu DTO espera un entero
             );
         }).collect(Collectors.toList());
 

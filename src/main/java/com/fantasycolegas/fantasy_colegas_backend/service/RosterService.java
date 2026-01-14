@@ -10,10 +10,7 @@ import com.fantasycolegas.fantasy_colegas_backend.model.Player;
 import com.fantasycolegas.fantasy_colegas_backend.model.RosterPlayer;
 import com.fantasycolegas.fantasy_colegas_backend.model.User;
 import com.fantasycolegas.fantasy_colegas_backend.model.enums.PlayerTeamRole;
-import com.fantasycolegas.fantasy_colegas_backend.repository.LeagueRepository;
-import com.fantasycolegas.fantasy_colegas_backend.repository.PlayerRepository;
-import com.fantasycolegas.fantasy_colegas_backend.repository.RosterPlayerRepository;
-import com.fantasycolegas.fantasy_colegas_backend.repository.UserRepository;
+import com.fantasycolegas.fantasy_colegas_backend.repository.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,16 +39,18 @@ public class RosterService {
     private final LeagueRepository leagueRepository;
     private final PlayerRepository playerRepository;
     private final UserRepository userRepository;
+    private final PlayerMatchStatsRepository playerMatchStatsRepository;
 
     /**
      * Constructor del servicio que inyecta las dependencias de los repositorios y otros servicios.
      */
-    public RosterService(RosterPlayerRepository rosterPlayerRepository, LeagueService leagueService, LeagueRepository leagueRepository, PlayerRepository playerRepository, UserRepository userRepository) {
+    public RosterService(RosterPlayerRepository rosterPlayerRepository, LeagueService leagueService, LeagueRepository leagueRepository, PlayerRepository playerRepository, UserRepository userRepository, PlayerMatchStatsRepository playerMatchStatsRepository) {
         this.rosterPlayerRepository = rosterPlayerRepository;
         this.leagueService = leagueService;
         this.leagueRepository = leagueRepository;
         this.playerRepository = playerRepository;
         this.userRepository = userRepository;
+        this.playerMatchStatsRepository = playerMatchStatsRepository;
     }
 
     /**
@@ -256,8 +255,29 @@ public class RosterService {
 
         List<Player> availablePlayers = playerRepository.findAvailablePlayers(leagueId, currentPlayerIds);
 
+        // CORRECCIÓN AQUÍ
         return availablePlayers.stream()
-                .map(player -> new PlayerResponseDto(player.getId(), player.getName(), player.getImage(), player.getTotalPoints()))
+                .map(player -> {
+                    // Consultamos los puntos desglosados (Campo vs Portero)
+                    Double fieldPoints = playerMatchStatsRepository.sumTotalFieldPointsByPlayer(player.getId());
+                    Double gkPoints = playerMatchStatsRepository.sumTotalGoalkeeperPointsByPlayer(player.getId());
+
+                    // Aseguramos que no sean nulos
+                    if (fieldPoints == null) fieldPoints = 0.0;
+                    if (gkPoints == null) gkPoints = 0.0;
+
+                    int totalCalculated = (int) (fieldPoints + gkPoints);
+
+                    // Llamamos al nuevo constructor de 6 argumentos
+                    return new PlayerResponseDto(
+                            player.getId(),
+                            player.getName(),
+                            player.getImage(),
+                            totalCalculated, // Total
+                            fieldPoints,     // Puntos Campo
+                            gkPoints         // Puntos Portero
+                    );
+                })
                 .collect(Collectors.toList());
     }
 

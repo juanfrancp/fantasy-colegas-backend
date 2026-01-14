@@ -54,4 +54,10 @@ public class MatchController {
         MatchResponseDto updatedMatch = matchService.submitMatchStats(matchId, submissionDto);
         return ResponseEntity.ok(updatedMatch);
     }
+
+    @PostMapping("/{matchId}/start")
+    public ResponseEntity<Void> startMatch(@PathVariable Long matchId) {
+        matchService.lockMatchAndSnapshot(matchId);
+        return ResponseEntity.ok().build();
+    }
 }

@@ -4,6 +4,8 @@ import com.fantasycolegas.fantasy_colegas_backend.model.Match;
 import com.fantasycolegas.fantasy_colegas_backend.model.Player;
 import com.fantasycolegas.fantasy_colegas_backend.model.PlayerMatchStats;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -44,4 +46,10 @@ public interface PlayerMatchStatsRepository extends JpaRepository<PlayerMatchSta
     void deleteAllByMatchIn(List<Match> matches);
 
     List<PlayerMatchStats> findByMatch(Match match);
+
+    @Query("SELECT COALESCE(SUM(s.totalFieldPoints), 0) FROM PlayerMatchStats s WHERE s.player.id = :playerId")
+    Double sumTotalFieldPointsByPlayer(@Param("playerId") Long playerId);
+
+    @Query("SELECT COALESCE(SUM(s.totalGoalkeeperPoints), 0) FROM PlayerMatchStats s WHERE s.player.id = :playerId")
+    Double sumTotalGoalkeeperPointsByPlayer(@Param("playerId") Long playerId);
 }

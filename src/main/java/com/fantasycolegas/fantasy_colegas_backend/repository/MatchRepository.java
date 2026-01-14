@@ -2,6 +2,7 @@ package com.fantasycolegas.fantasy_colegas_backend.repository;
 
 import com.fantasycolegas.fantasy_colegas_backend.model.League;
 import com.fantasycolegas.fantasy_colegas_backend.model.Match;
+import com.fantasycolegas.fantasy_colegas_backend.model.enums.MatchStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -45,4 +46,6 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
     List<Match> findByMatchDateAfter(LocalDateTime date);
 
     List<Match> findByMatchDateBefore(LocalDateTime date);
+
+    List<Match> findByStatusAndMatchDateBefore(MatchStatus status, LocalDateTime date);
 }

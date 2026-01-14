@@ -8,6 +8,7 @@ import com.fantasycolegas.fantasy_colegas_backend.model.League;
 import com.fantasycolegas.fantasy_colegas_backend.model.Player;
 import com.fantasycolegas.fantasy_colegas_backend.model.RosterPlayer;
 import com.fantasycolegas.fantasy_colegas_backend.repository.LeagueRepository;
+import com.fantasycolegas.fantasy_colegas_backend.repository.PlayerMatchStatsRepository;
 import com.fantasycolegas.fantasy_colegas_backend.repository.PlayerRepository;
 import com.fantasycolegas.fantasy_colegas_backend.repository.RosterPlayerRepository;
 import jakarta.transaction.Transactional;
@@ -38,16 +39,18 @@ public class PlayerService {
     private final LeagueService leagueService;
     private final RosterPlayerRepository rosterPlayerRepository;
     private final FileStorageService fileStorageService;
+    private final PlayerMatchStatsRepository playerMatchStatsRepository;
 
     /**
      * Constructor del servicio que inyecta las dependencias de los repositorios.
      */
-    public PlayerService(PlayerRepository playerRepository, LeagueRepository leagueRepository, LeagueService leagueService, RosterPlayerRepository rosterPlayerRepository, FileStorageService fileStorageService) {
+    public PlayerService(PlayerRepository playerRepository, LeagueRepository leagueRepository, LeagueService leagueService, RosterPlayerRepository rosterPlayerRepository, FileStorageService fileStorageService, PlayerMatchStatsRepository playerMatchStatsRepository) {
         this.playerRepository = playerRepository;
         this.leagueRepository = leagueRepository;
         this.leagueService = leagueService;
         this.rosterPlayerRepository = rosterPlayerRepository;
         this.fileStorageService = fileStorageService;
+        this.playerMatchStatsRepository = playerMatchStatsRepository;
     }
 
     /**
@@ -226,21 +229,24 @@ public class PlayerService {
     }
 
     private PlayerResponseDto convertToDto(Player player) {
+        // Consultamos los puntos desglosados en tiempo real
+        Double fieldPoints = playerMatchStatsRepository.sumTotalFieldPointsByPlayer(player.getId());
+        Double gkPoints = playerMatchStatsRepository.sumTotalGoalkeeperPointsByPlayer(player.getId());
+
+        // Calculamos el total sumando ambos (más fiable que player.getTotalPoints() si este está desactualizado)
+        int calculatedTotal = (int) (fieldPoints + gkPoints);
+
         return new PlayerResponseDto(
                 player.getId(),
                 player.getName(),
                 player.getImage(),
-                player.getTotalPoints()
+                calculatedTotal, // Usamos el total calculado
+                fieldPoints,     // Puntos como jugador de campo
+                gkPoints         // Puntos como portero
         );
     }
 
-    /**
-     * Mapea una entidad {@link Player} a un DTO de respuesta.
-     *
-     * @param player La entidad {@link Player}.
-     * @return El DTO de respuesta {@link PlayerResponseDto}.
-     */
     private PlayerResponseDto mapToPlayerResponseDto(Player player) {
-        return new PlayerResponseDto(player.getId(), player.getName(), player.getImage(), player.getTotalPoints());
+        return convertToDto(player);
     }
 }
