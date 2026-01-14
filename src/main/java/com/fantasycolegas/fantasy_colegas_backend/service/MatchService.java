@@ -162,7 +162,7 @@ public class MatchService {
                     stats.setPlayer(player);
                 }
 
-                // --- Mapeo de campos ---
+                // --- Mapeo de campos --
                 stats.setGolesMarcados(statDto.getGolesMarcados());
                 stats.setFallosClarosDeGol(statDto.getFallosClarosDeGol());
                 stats.setAsistencias(statDto.getAsistencias());
