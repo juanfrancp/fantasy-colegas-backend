@@ -1,7 +1,9 @@
 package com.fantasycolegas.fantasy_colegas_backend.controller;
 
 import com.fantasycolegas.fantasy_colegas_backend.dto.request.MatchCreateDto;
+import com.fantasycolegas.fantasy_colegas_backend.dto.request.MatchStatsSubmissionDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.request.MatchUpdateDto;
+import com.fantasycolegas.fantasy_colegas_backend.dto.request.PlayerMatchStatsUpdateDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.response.MatchResponseDto;
 import com.fantasycolegas.fantasy_colegas_backend.service.MatchService;
 import jakarta.validation.Valid;
@@ -42,6 +44,14 @@ public class MatchController {
             @PathVariable Long matchId,
             @Valid @RequestBody MatchUpdateDto updateDto) {
         MatchResponseDto updatedMatch = matchService.updateMatch(matchId, updateDto);
+        return ResponseEntity.ok(updatedMatch);
+    }
+
+    @PostMapping("/{matchId}/stats")
+    public ResponseEntity<MatchResponseDto> submitMatchStats(
+            @PathVariable Long matchId,
+            @RequestBody MatchStatsSubmissionDto submissionDto) { // <-- Cambio aquí
+        MatchResponseDto updatedMatch = matchService.submitMatchStats(matchId, submissionDto);
         return ResponseEntity.ok(updatedMatch);
     }
 }

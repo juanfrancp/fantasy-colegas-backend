@@ -1,6 +1,7 @@
 package com.fantasycolegas.fantasy_colegas_backend.repository;
 
 import com.fantasycolegas.fantasy_colegas_backend.model.Match;
+import com.fantasycolegas.fantasy_colegas_backend.model.Player;
 import com.fantasycolegas.fantasy_colegas_backend.model.PlayerMatchStats;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
@@ -30,6 +31,7 @@ public interface PlayerMatchStatsRepository extends JpaRepository<PlayerMatchSta
      * @return Un objeto {@link Optional} que puede contener las estadísticas encontradas.
      */
     Optional<PlayerMatchStats> findByMatchIdAndPlayerId(Long matchId, Long id);
+    Optional<PlayerMatchStats> findByMatchAndPlayer(Match match, Player player);
 
     /**
      * Busca todas las estadísticas de un jugador en todos los partidos.
