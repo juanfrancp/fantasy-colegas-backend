@@ -36,9 +36,6 @@ public class PlayerMatchStatsUpdateDto {
     @Min(value = 0, message = "Las paradas como portero no pueden ser negativas")
     private int paradasComoPortero = 0;
 
-    @Min(value = 0, message = "Las cesiones concedidas no pueden ser negativas")
-    private int cesionesConcedidas = 0;
-
     @Min(value = 0, message = "Las faltas cometidas no pueden ser negativas")
     private int faltasCometidas = 0;
 
@@ -51,27 +48,17 @@ public class PlayerMatchStatsUpdateDto {
     @Min(value = 0, message = "Los penaltis cometidos no pueden ser negativos")
     private int penaltisCometidos = 0;
 
-    @Min(value = 0, message = "Los pases acertados no pueden ser negativos")
-    private int pasesAcertados = 0;
-
-    @Min(value = 0, message = "Los pases fallados no pueden ser negativos")
-    private int pasesFallados = 0;
-
-    @Min(value = 0, message = "Los robos de balón no pueden ser negativos")
-    private int robosDeBalon = 0;
-
-    @Min(value = 0, message = "Los tiros completados no pueden ser negativos")
-    private int tirosCompletados = 0;
-
-    @Min(value = 0, message = "Los tiros entre los tres palos no pueden ser negativos")
-    private int tirosEntreLosTresPalos = 0;
-
-    @Min(value = 0, message = "El tiempo jugado no puede ser negativo")
-    private int tiempoJugado = 0;
-
     @Min(value = 0, message = "Las tarjetas amarillas no pueden ser negativas")
     private int tarjetasAmarillas = 0;
 
     @Min(value = 0, message = "Las tarjetas rojas no pueden ser negativas")
     private int tarjetasRojas = 0;
+
+    @Min(value = 0, message = "Las tarjetas rojas no pueden ser negativas")
+    private int salvadasDeGol = 0;
+
+    @Min(value = 0, message = "Las tarjetas rojas no pueden ser negativas")
+    private int penaltisParados = 0;
+
+    private boolean porteriaImbatida = true;
 }

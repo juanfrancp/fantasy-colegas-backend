@@ -98,55 +98,48 @@ INSERT INTO roster_players (user_id, league_id, player_id, role) VALUES
 (10, 3, 11, 'PORTERO'), (10, 3, 12, 'CAMPO'), (10, 3, 1, 'CAMPO'), (10, 3, 1, 'CAMPO'), (10, 3, 1, 'CAMPO'), (10, 3, 1, 'CAMPO');
 
 -- #####################################################################################
--- # SECCIÓN DE PARTIDOS CORREGIDA
+-- # SECCIÓN DE PARTIDOS
 -- #####################################################################################
 
 -- 1. CREACIÓN DE EQUIPOS PARA PARTIDOS (MATCH TEAMS)
--- Equipos para la Liga 1 (IDs de equipo: 1, 2, 3, 4)
 INSERT INTO match_teams (name) VALUES
 ('Titanes del Sofá'), ('Leyendas Unidas'), ('Dream Team Clásico'), ('Héroes del Mando');
--- Equipos para la Liga 3 (IDs de equipo: 5, 6, 7, 8)
 INSERT INTO match_teams (name) VALUES
 ('Barrio All-Stars'), ('Furia Callejera'), ('Atlético Vecindario'), ('Real Callejón');
 
 -- 2. ASIGNACIÓN DE JUGADORES A LOS EQUIPOS DE PARTIDO
--- Partido 1 (Liga 1): Titanes (ID 1) vs Leyendas (ID 2)
 INSERT INTO match_team_players (match_team_id, player_id) VALUES
-(1, 2), (1, 4), -- Titanes: El Muro, El Cerebro
-(2, 3), (2, 5); -- Leyendas: El Káiser, El Matador
--- Partido 2 (Liga 1): Dream Team (ID 3) vs Héroes (ID 4)
+(1, 2), (1, 4), -- Titanes
+(2, 3), (2, 5); -- Leyendas
 INSERT INTO match_team_players (match_team_id, player_id) VALUES
-(3, 6), (3, 5), -- Dream Team: La Bala, El Matador
-(4, 2), (4, 4); -- Héroes: El Muro, El Cerebro
--- Partido 3 (Liga 3): Barrio All-Stars (ID 5) vs Furia (ID 6)
+(3, 6), (3, 5), -- Dream Team
+(4, 2), (4, 4); -- Héroes
 INSERT INTO match_team_players (match_team_id, player_id) VALUES
-(5, 11), (5, 13), -- All-Stars: La Pantera, El Arquitecto
-(6, 12), (6, 14); -- Furia: El Mariscal, El Tanque
--- Partido 4 (Liga 3): Atlético (ID 7) vs Real (ID 8)
+(5, 11), (5, 13), -- All-Stars
+(6, 12), (6, 14); -- Furia
 INSERT INTO match_team_players (match_team_id, player_id) VALUES
-(7, 15), (7, 16), -- Atlético: El Puñal, El Pibe
-(8, 11), (8, 14); -- Real: La Pantera, El Tanque
+(7, 15), (7, 16), -- Atlético
+(8, 11), (8, 14); -- Real
 
 -- 3. CREACIÓN DE PARTIDOS (MATCHES)
--- Un partido pasado (con resultado) y uno futuro (sin resultado) para la liga 1
-INSERT INTO matches (league_id, home_team_id, away_team_id, home_score, away_score, match_date) VALUES
-(1, 1, 2, 3, 1, '2025-08-20T20:00:00'), -- Pasado
-(1, 3, 4, NULL, NULL, '2025-09-10T20:00:00'); -- Futuro
--- Un partido pasado (con resultado) y uno futuro (sin resultado) para la liga 3
-INSERT INTO matches (league_id, home_team_id, away_team_id, home_score, away_score, match_date) VALUES
-(3, 5, 6, 2, 2, '2025-08-25T21:00:00'), -- Pasado
-(3, 7, 8, NULL, NULL, '2025-09-15T21:00:00'); -- Futuro
+-- CORREGIDO: Añadida columna 'status' obligatoria ('FINISHED' para pasados, 'SCHEDULED' para futuros)
+INSERT INTO matches (league_id, home_team_id, away_team_id, home_score, away_score, match_date, status) VALUES
+(1, 1, 2, 3, 1, '2025-08-20T20:00:00', 'FINISHED'),
+(1, 3, 4, NULL, NULL, '2025-09-10T20:00:00', 'SCHEDULED');
+
+INSERT INTO matches (league_id, home_team_id, away_team_id, home_score, away_score, match_date, status) VALUES
+(3, 5, 6, 2, 2, '2025-08-25T21:00:00', 'FINISHED'),
+(3, 7, 8, NULL, NULL, '2025-09-15T21:00:00', 'SCHEDULED');
 
 -- #####################################################################################
 -- # ESTADÍSTICAS DE PARTIDOS (PLAYER_MATCH_STATS)
 -- #####################################################################################
--- Se asocian al partido con ID=1
-INSERT INTO player_match_stats (match_id, player_id, goles_marcados, fallos_claros_de_gol, asistencias, goles_encajados_como_portero, paradas_como_portero, cesiones_concedidas, faltas_cometidas, faltas_recibidas, penaltis_recibidos, penaltis_cometidos, pases_acertados, pases_fallados, robos_de_balon, tiros_completados, tiros_entre_los_tres_palos, tiempo_jugado, tarjetas_amarillas, tarjetas_rojas, total_field_points, total_goalkeeper_points) VALUES
+-- CORREGIDO: Columnas actualizadas para coincidir con la BDD actual (quitando tiempo_jugado, pases, etc. y añadiendo nuevas)
+-- Nuevas columnas: porteria_imbatida, salvadas_de_gol, penaltis_parados
+INSERT INTO player_match_stats (match_id, player_id, goles_marcados, fallos_claros_de_gol, asistencias, goles_encajados_como_portero, paradas_como_portero, faltas_cometidas, faltas_recibidas, penaltis_recibidos, penaltis_cometidos, tarjetas_amarillas, tarjetas_rojas, total_field_points, total_goalkeeper_points, porteria_imbatida, salvadas_de_gol, penaltis_parados) VALUES
 -- Partido 1, Portero 'El Muro' (player_id=2)
-(1, 2, 0, 0, 0, 1, 5, 0, 0, 2, 0, 0, 20, 5, 0, 0, 0, 90, 0, 0, 0, 8),
+(1, 2, 0, 0, 0, 1, 5, 0, 2, 0, 0, 0, 0, 0, 8, FALSE, 0, 0),
 -- Partido 1, Campo 'El Cerebro' (player_id=4)
-(1, 4, 1, 0, 1, 0, 0, 0, 1, 3, 1, 0, 50, 8, 5, 3, 2, 90, 0, 0, 12, 0),
+(1, 4, 1, 0, 1, 0, 0, 1, 3, 1, 0, 0, 0, 12, 0, FALSE, 0, 0),
 -- Partido 1, Campo 'El Matador' (player_id=5)
-(1, 5, 2, 1, 0, 0, 0, 0, 2, 1, 0, 0, 15, 4, 2, 5, 4, 90, 1, 0, 10, 0);
-
--- ... (El resto de tu script de prueba se mantiene igual) ...
+(1, 5, 2, 1, 0, 0, 0, 2, 1, 0, 0, 1, 0, 10, 0, FALSE, 0, 0);

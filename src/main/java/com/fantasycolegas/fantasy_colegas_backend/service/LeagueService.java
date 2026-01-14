@@ -8,6 +8,7 @@ import com.fantasycolegas.fantasy_colegas_backend.model.enums.LeagueRole;
 import com.fantasycolegas.fantasy_colegas_backend.model.enums.PlayerTeamRole;
 import com.fantasycolegas.fantasy_colegas_backend.model.enums.RequestStatus;
 import com.fantasycolegas.fantasy_colegas_backend.repository.*;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
@@ -43,6 +44,9 @@ public class LeagueService {
     private final PlayerMatchStatsRepository playerMatchStatsRepository;
     private final FileStorageService fileStorageService;
     private final MatchRepository matchRepository;
+
+    @Autowired // O añádelo al constructor como los demás
+    private UserMatchLineupRepository userMatchLineupRepository;
 
     /**
      * Constructor del servicio que inyecta las dependencias de los repositorios.
@@ -99,23 +103,26 @@ public class LeagueService {
     }
 
     /**
-     * Calcula los puntos totales de un usuario sumando los puntos de cada jugador en su roster.
-     *
-     * @param leagueId El ID de la liga.
-     * @param userId El ID del usuario.
-     * @return Los puntos totales del usuario.
+     * Calcula los puntos totales HISTÓRICOS usando las alineaciones guardadas (Snapshots).
      */
     private double calculateUserPoints(Long leagueId, Long userId) {
-        List<RosterPlayer> rosterPlayers = rosterPlayerRepository.findByUserIdAndLeagueId(userId, leagueId);
+        // 1. Obtenemos todas las veces que este usuario alineó a alguien en esta liga
+        List<UserMatchLineup> lineups = userMatchLineupRepository.findByUserIdAndMatchLeagueId(userId, leagueId);
 
         double totalUserPoints = 0;
-        for (RosterPlayer rosterPlayer : rosterPlayers) {
-            List<PlayerMatchStats> stats = playerMatchStatsRepository.findByPlayerId(rosterPlayer.getPlayer().getId());
-            for (PlayerMatchStats stat : stats) {
-                if (rosterPlayer.getRole() == PlayerTeamRole.CAMPO) {
-                    totalUserPoints += stat.getTotalFieldPoints();
-                } else if (rosterPlayer.getRole() == PlayerTeamRole.PORTERO) {
-                    totalUserPoints += stat.getTotalGoalkeeperPoints();
+
+        for (UserMatchLineup lineup : lineups) {
+            // 2. Para cada alineación, buscamos qué hizo ese jugador en ESE partido concreto
+            Optional<PlayerMatchStats> statsOpt = playerMatchStatsRepository.findByMatchAndPlayer(lineup.getMatch(), lineup.getPlayer());
+
+            if (statsOpt.isPresent()) {
+                PlayerMatchStats stats = statsOpt.get();
+
+                // 3. Sumamos puntos según el rol que tenía asignado EN ESE MOMENTO
+                if (lineup.getRole() == PlayerTeamRole.PORTERO) {
+                    totalUserPoints += stats.getTotalGoalkeeperPoints();
+                } else {
+                    totalUserPoints += stats.getTotalFieldPoints();
                 }
             }
         }

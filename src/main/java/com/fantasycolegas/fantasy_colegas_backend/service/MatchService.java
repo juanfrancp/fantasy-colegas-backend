@@ -8,17 +8,19 @@ import com.fantasycolegas.fantasy_colegas_backend.dto.response.MatchResponseDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.response.MatchTeamResponseDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.response.PlayerResponseDto;
 import com.fantasycolegas.fantasy_colegas_backend.model.*;
-import com.fantasycolegas.fantasy_colegas_backend.repository.LeagueRepository;
-import com.fantasycolegas.fantasy_colegas_backend.repository.MatchRepository;
-import com.fantasycolegas.fantasy_colegas_backend.repository.PlayerMatchStatsRepository;
-import com.fantasycolegas.fantasy_colegas_backend.repository.PlayerRepository;
+import com.fantasycolegas.fantasy_colegas_backend.model.enums.MatchStatus;
+import com.fantasycolegas.fantasy_colegas_backend.model.enums.PlayerTeamRole;
+import com.fantasycolegas.fantasy_colegas_backend.repository.*;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -35,6 +37,15 @@ public class MatchService {
 
     @Autowired
     private PlayerMatchStatsRepository playerMatchStatsRepository;
+
+    @Autowired
+    private UserMatchLineupRepository userMatchLineupRepository;
+
+    @Autowired
+    private RosterPlayerRepository rosterPlayerRepository;
+
+    @Autowired
+    private PointsCalculationService pointsCalculationService;
 
     @Transactional
     public MatchResponseDto createMatch(MatchCreateDto matchCreateDto) {
@@ -71,39 +82,65 @@ public class MatchService {
                 .collect(Collectors.toList());
     }
 
+    // Método auxiliar para convertir Match a DTO inyectando los puntos del partido
     private MatchResponseDto convertToDto(Match match) {
-        return new MatchResponseDto(
-                match.getId(),
-                convertToTeamDto(match.getHomeTeam()),
-                convertToTeamDto(match.getAwayTeam()),
-                match.getHomeScore(),
-                match.getAwayScore(),
-                match.getMatchDate()
-        );
+        MatchResponseDto dto = new MatchResponseDto();
+        dto.setId(match.getId());
+        dto.setLeagueId(match.getLeague().getId());
+        dto.setMatchDate(match.getMatchDate());
+        dto.setStatus(match.getStatus()); // Asegúrate de tener este campo en el DTO
+        dto.setHomeScore(match.getHomeScore());
+        dto.setAwayScore(match.getAwayScore());
+
+        // 1. Recuperar TODAS las estadísticas de este partido de una sola vez
+        List<PlayerMatchStats> allStats = playerMatchStatsRepository.findByMatch(match);
+
+        // 2. Crear un mapa para búsqueda rápida: PlayerID -> Puntos Totales (Campo + Portero)
+        Map<Long, Double> matchPointsMap = allStats.stream()
+                .collect(Collectors.toMap(
+                        stats -> stats.getPlayer().getId(),
+                        stats -> stats.getTotalFieldPoints() + stats.getTotalGoalkeeperPoints()
+                ));
+
+        // 3. Convertir equipos inyectando los puntos específicos
+        if (match.getHomeTeam() != null) {
+            dto.setHomeTeam(convertTeamToDto(match.getHomeTeam(), matchPointsMap));
+        }
+        if (match.getAwayTeam() != null) {
+            dto.setAwayTeam(convertTeamToDto(match.getAwayTeam(), matchPointsMap));
+        }
+
+        return dto;
     }
 
-    private MatchTeamResponseDto convertToTeamDto(MatchTeam team) {
-        if (team == null) return null;
+    // Método auxiliar para equipos
+    private MatchTeamResponseDto convertTeamToDto(MatchTeam team, Map<Long, Double> pointsMap) {
+        MatchTeamResponseDto teamDto = new MatchTeamResponseDto();
+        teamDto.setId(team.getId());
+        teamDto.setName(team.getName());
 
-        List<PlayerResponseDto> players = team.getPlayers().stream()
-                .map(this::convertPlayerToDto)
-                .collect(Collectors.toList());
+        List<PlayerResponseDto> playerDtos = team.getPlayers().stream().map(player -> {
+            PlayerResponseDto pDto = convertPlayerToDto(player);
 
-        return new MatchTeamResponseDto(
-                team.getId(),
-                team.getName(),
-                players
-        );
+            Double matchPoints = pointsMap.getOrDefault(player.getId(), 0.0);
+
+            pDto.setTotalPoints(matchPoints.intValue());
+
+            return pDto;
+        }).collect(Collectors.toList());
+
+        teamDto.setPlayers(playerDtos);
+        return teamDto;
     }
 
     // --- MÉTODO CORREGIDO ---
     private PlayerResponseDto convertPlayerToDto(Player player) {
-        return new PlayerResponseDto(
-                player.getId(),
-                player.getName(),
-                player.getImage(),
-                player.getTotalPoints()
-        );
+        PlayerResponseDto dto = new PlayerResponseDto();
+        dto.setId(player.getId());
+        dto.setName(player.getName());
+        dto.setImage(player.getImage());
+        dto.setTotalPoints(player.getTotalPoints());
+        return dto;
     }
 
     @Transactional
@@ -141,6 +178,12 @@ public class MatchService {
         Match match = matchRepository.findById(matchId)
                 .orElseThrow(() -> new EntityNotFoundException("Match not found with id: " + matchId));
 
+        if (match.getStatus() == MatchStatus.SCHEDULED) {
+            lockMatchAndSnapshot(matchId);
+            // Recargamos el match porque el estado ha cambiado en BDD
+            match = matchRepository.findById(matchId).orElseThrow();
+        }
+
         // 2. Actualizar el marcador global del partido
         // Hibernate detectará esto como un "Dirty Check", pero usaremos saveAndFlush al final para asegurar.
         match.setHomeScore(submissionDto.getHomeScore());
@@ -168,22 +211,21 @@ public class MatchService {
                 stats.setAsistencias(statDto.getAsistencias());
                 stats.setGolesEncajadosComoPortero(statDto.getGolesEncajadosComoPortero());
                 stats.setParadasComoPortero(statDto.getParadasComoPortero());
-                stats.setCesionesConcedidas(statDto.getCesionesConcedidas());
                 stats.setFaltasCometidas(statDto.getFaltasCometidas());
                 stats.setFaltasRecibidas(statDto.getFaltasRecibidas());
                 stats.setPenaltisRecibidos(statDto.getPenaltisRecibidos());
                 stats.setPenaltisCometidos(statDto.getPenaltisCometidos());
-                stats.setPasesAcertados(statDto.getPasesAcertados());
-                stats.setPasesFallados(statDto.getPasesFallados());
-                stats.setRobosDeBalon(statDto.getRobosDeBalon());
-                stats.setTirosCompletados(statDto.getTirosCompletados());
-                stats.setTirosEntreLosTresPalos(statDto.getTirosEntreLosTresPalos());
-                stats.setTiempoJugado(statDto.getTiempoJugado());
                 stats.setTarjetasAmarillas(statDto.getTarjetasAmarillas());
                 stats.setTarjetasRojas(statDto.getTarjetasRojas());
+                stats.setPorteriaImbatida(statDto.isPorteriaImbatida());
 
-                // IMPORTANTE: Calculamos puntos (si tienes lógica para esto, añádela aquí o inicializa a 0)
-                // stats.setTotalFieldPoints(...);
+                // 1. Calculamos puntos como si fuera jugador de CAMPO
+                double fieldPoints = pointsCalculationService.calculatePointsForRole(stats, PlayerTeamRole.CAMPO);
+                stats.setTotalFieldPoints(fieldPoints);
+
+                // 2. Calculamos puntos como si fuera PORTERO
+                double gkPoints = pointsCalculationService.calculatePointsForRole(stats, PlayerTeamRole.PORTERO);
+                stats.setTotalGoalkeeperPoints(gkPoints);
 
                 // Forzamos el guardado inmediato de la estadística
                 playerMatchStatsRepository.saveAndFlush(stats);
@@ -192,6 +234,39 @@ public class MatchService {
 
         // 4. Guardar y Forzar flush del partido
         Match savedMatch = matchRepository.saveAndFlush(match);
+
         return convertToDto(savedMatch);
+    }
+
+    @Transactional
+    public void lockMatchAndSnapshot(Long matchId) {
+        Match match = matchRepository.findById(matchId)
+                .orElseThrow(() -> new EntityNotFoundException("Match not found"));
+
+        if (match.getStatus() != MatchStatus.SCHEDULED) {
+            throw new IllegalStateException("El partido ya ha comenzado o finalizado.");
+        }
+
+        // 1. Cambiar estado
+        match.setStatus(MatchStatus.LOCKED);
+        matchRepository.save(match);
+
+        // 2. LA MAGIA: Copiar Rosters actuales a UserMatchLineup
+        // Obtenemos todos los jugadores activos en esa liga
+        List<RosterPlayer> currentRosters = rosterPlayerRepository.findAllByLeagueId(match.getLeague().getId());
+
+        List<UserMatchLineup> snapshot = new ArrayList<>();
+        for (RosterPlayer rp : currentRosters) {
+            // Creamos la copia histórica
+            UserMatchLineup lineup = new UserMatchLineup(
+                    rp.getUser(),
+                    match,
+                    rp.getPlayer(),
+                    rp.getRole() // Aquí guardamos si era PORTERO o CAMPO en este instante
+            );
+            snapshot.add(lineup);
+        }
+
+        userMatchLineupRepository.saveAll(snapshot);
     }
 }

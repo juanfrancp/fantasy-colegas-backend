@@ -42,4 +42,6 @@ public interface PlayerMatchStatsRepository extends JpaRepository<PlayerMatchSta
     List<PlayerMatchStats> findByPlayerId(Long id);
 
     void deleteAllByMatchIn(List<Match> matches);
+
+    List<PlayerMatchStats> findByMatch(Match match);
 }

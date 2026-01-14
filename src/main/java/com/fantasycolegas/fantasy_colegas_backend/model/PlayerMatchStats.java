@@ -40,20 +40,15 @@ public class PlayerMatchStats {
     private int asistencias;
     private int golesEncajadosComoPortero;
     private int paradasComoPortero;
-    private int cesionesConcedidas;
     private int faltasCometidas;
     private int faltasRecibidas;
     private int penaltisRecibidos;
     private int penaltisCometidos;
-
-    private int pasesAcertados;
-    private int pasesFallados;
-    private int robosDeBalon;
-    private int tirosCompletados;
-    private int tirosEntreLosTresPalos;
-    private int tiempoJugado;
     private int tarjetasAmarillas;
     private int tarjetasRojas;
+    private int salvadasDeGol;
+    private boolean porteriaImbatida;
+    private int penaltisParados;
 
     private double totalFieldPoints;
     private double totalGoalkeeperPoints;

@@ -64,24 +64,32 @@ public class DataInitializer {
      * y portero, si la base de datos no contiene ninguna regla.
      * </p>
      */
+
     @EventListener(ApplicationReadyEvent.class)
     public void initializeScoringRules() {
         if (scoringRuleRepository.count() == 0) {
+            // --- JUGADOR DE CAMPO ---
             scoringRuleRepository.save(createRule("golesMarcados", 5.0, PlayerTeamRole.CAMPO));
             scoringRuleRepository.save(createRule("asistencias", 3.0, PlayerTeamRole.CAMPO));
-            scoringRuleRepository.save(createRule("fallosClarosDeGol", -1.0, PlayerTeamRole.CAMPO));
-            scoringRuleRepository.save(createRule("faltasCometidas", -0.5, PlayerTeamRole.CAMPO));
-            scoringRuleRepository.save(createRule("faltasRecibidas", 0.5, PlayerTeamRole.CAMPO));
-            scoringRuleRepository.save(createRule("tarjetasAmarillas", -1.0, PlayerTeamRole.CAMPO));
-            scoringRuleRepository.save(createRule("tarjetasRojas", -3.0, PlayerTeamRole.CAMPO));
-            scoringRuleRepository.save(createRule("paradasComoPortero", 0.5, PlayerTeamRole.PORTERO));
-            scoringRuleRepository.save(createRule("golesEncajadosComoPortero", -2.0, PlayerTeamRole.PORTERO));
-            scoringRuleRepository.save(createRule("penaltisRecibidos", 2.0, PlayerTeamRole.PORTERO));
-            scoringRuleRepository.save(createRule("penaltisCometidos", -3.0, PlayerTeamRole.PORTERO));
-            scoringRuleRepository.save(createRule("tarjetasAmarillas", -1.0, PlayerTeamRole.PORTERO));
-            scoringRuleRepository.save(createRule("tarjetasRojas", -3.0, PlayerTeamRole.PORTERO));
+            scoringRuleRepository.save(createRule("tirosEntreLosTresPalos", 1.0, PlayerTeamRole.CAMPO)); // Bonus ofensivo
+            scoringRuleRepository.save(createRule("fallosClarosDeGol", -2.0, PlayerTeamRole.CAMPO)); // Penalización
+            scoringRuleRepository.save(createRule("salvadasDeGol", 3.0, PlayerTeamRole.CAMPO)); // Sacarla bajo palos
+            scoringRuleRepository.save(createRule("penaltisCometidos", -3.0, PlayerTeamRole.CAMPO));
+            scoringRuleRepository.save(createRule("penaltisRecibidos", 2.0, PlayerTeamRole.CAMPO));
+            scoringRuleRepository.save(createRule("tarjetasAmarillas", -2.0, PlayerTeamRole.CAMPO)); // Subido a -2
+            scoringRuleRepository.save(createRule("tarjetasRojas", -5.0, PlayerTeamRole.CAMPO)); // Subido a -5
 
-            System.out.println("Reglas de puntuación iniciales creadas correctamente.");
+            // --- PORTERO ---
+            scoringRuleRepository.save(createRule("golesMarcados", 10.0, PlayerTeamRole.PORTERO)); // ¡Gol de portero vale más!
+            scoringRuleRepository.save(createRule("asistencias", 5.0, PlayerTeamRole.PORTERO));
+            scoringRuleRepository.save(createRule("paradasComoPortero", 1.0, PlayerTeamRole.PORTERO)); // 1 pto por parada
+            scoringRuleRepository.save(createRule("penaltisParados", 5.0, PlayerTeamRole.PORTERO)); // Momento héroe
+            scoringRuleRepository.save(createRule("porteriaImbatida", 3.0, PlayerTeamRole.PORTERO)); // Clean Sheet
+            scoringRuleRepository.save(createRule("golesEncajadosComoPortero", -1.0, PlayerTeamRole.PORTERO));
+            scoringRuleRepository.save(createRule("tarjetasAmarillas", -2.0, PlayerTeamRole.PORTERO));
+            scoringRuleRepository.save(createRule("tarjetasRojas", -5.0, PlayerTeamRole.PORTERO));
+
+            System.out.println("Reglas de puntuación inicializadas correctamente.");
         }
     }
 

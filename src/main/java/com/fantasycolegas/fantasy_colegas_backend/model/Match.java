@@ -1,5 +1,6 @@
 package com.fantasycolegas.fantasy_colegas_backend.model;
 
+import com.fantasycolegas.fantasy_colegas_backend.model.enums.MatchStatus;
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -44,4 +45,8 @@ public class Match {
 
     @Column(nullable = false)
     private LocalDateTime matchDate; // Cambiado a LocalDateTime
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private MatchStatus status = MatchStatus.SCHEDULED;
 }
