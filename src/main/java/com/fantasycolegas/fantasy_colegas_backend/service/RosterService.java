@@ -84,8 +84,6 @@ public class RosterService {
         if (porteroCount != 1) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El equipo debe tener exactamente un portero.");
         }
-        if (rosterCreateDto.getPlayers().stream().anyMatch(p -> p.getRole() == PlayerTeamRole.PORTERO) && rosterCreateDto.getPlayers().stream().anyMatch(p -> p.getRole() == PlayerTeamRole.CAMPO)) {
-        }
 
         List<Long> playerIds = rosterCreateDto.getPlayers().stream().map(RosterPlayerDto::getPlayerId).collect(Collectors.toList());
 
