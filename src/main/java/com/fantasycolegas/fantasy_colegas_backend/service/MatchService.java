@@ -104,27 +104,52 @@ public class MatchService {
 
         // 3. Convertir equipos inyectando los puntos específicos
         if (match.getHomeTeam() != null) {
-            dto.setHomeTeam(convertTeamToDto(match.getHomeTeam(), matchPointsMap));
+            dto.setHomeTeam(convertTeamToDto(match.getHomeTeam(), matchPointsMap, allStats)); // <--- Pasamos allStats
         }
         if (match.getAwayTeam() != null) {
-            dto.setAwayTeam(convertTeamToDto(match.getAwayTeam(), matchPointsMap));
+            dto.setAwayTeam(convertTeamToDto(match.getAwayTeam(), matchPointsMap, allStats)); // <--- Pasamos allStats
         }
 
         return dto;
     }
 
-    // Método auxiliar para equipos
-    private MatchTeamResponseDto convertTeamToDto(MatchTeam team, Map<Long, Double> pointsMap) {
+    private MatchTeamResponseDto convertTeamToDto(MatchTeam team, Map<Long, Double> pointsMap, List<PlayerMatchStats> allStats) {
         MatchTeamResponseDto teamDto = new MatchTeamResponseDto();
         teamDto.setId(team.getId());
         teamDto.setName(team.getName());
 
         List<PlayerResponseDto> playerDtos = team.getPlayers().stream().map(player -> {
+            // Obtenemos el DTO base (que ya tiene los puntos calculados)
             PlayerResponseDto pDto = convertPlayerToDto(player);
 
+            // Sobrescribimos el totalPoints específico para ESTE partido
             Double matchPoints = pointsMap.getOrDefault(player.getId(), 0.0);
-
             pDto.setTotalPoints(matchPoints.intValue());
+
+            // --- NUEVO: INYECTAR LAS ESTADÍSTICAS RAW ---
+            // Buscamos si hay stats para este jugador en este partido
+            Optional<PlayerMatchStats> statsOpt = allStats.stream()
+                    .filter(s -> s.getPlayer().getId().equals(player.getId()))
+                    .findFirst();
+
+            if (statsOpt.isPresent()) {
+                PlayerMatchStats s = statsOpt.get();
+                pDto.setGolesMarcados(s.getGolesMarcados());
+                pDto.setAsistencias(s.getAsistencias());
+                pDto.setFallosClarosDeGol(s.getFallosClarosDeGol());
+                pDto.setFaltasCometidas(s.getFaltasCometidas());
+                pDto.setFaltasRecibidas(s.getFaltasRecibidas());
+                pDto.setPenaltisCometidos(s.getPenaltisCometidos());
+                pDto.setPenaltisRecibidos(s.getPenaltisRecibidos());
+                pDto.setTarjetasAmarillas(s.getTarjetasAmarillas());
+                pDto.setTarjetasRojas(s.getTarjetasRojas());
+                pDto.setSalvadasDeGol(s.getSalvadasDeGol());
+                pDto.setParadasComoPortero(s.getParadasComoPortero());
+                pDto.setGolesEncajadosComoPortero(s.getGolesEncajadosComoPortero());
+                pDto.setPenaltisParados(s.getPenaltisParados());
+                pDto.setPorteriaImbatida(s.isPorteriaImbatida());
+            }
+            // ---------------------------------------------
 
             return pDto;
         }).collect(Collectors.toList());
@@ -268,5 +293,21 @@ public class MatchService {
         }
 
         userMatchLineupRepository.saveAll(snapshot);
+    }
+
+    // Modificar este método
+    public List<MatchResponseDto> getUpcomingMatches(Long leagueId) {
+        return matchRepository.findByLeagueIdAndMatchDateAfter(leagueId, LocalDateTime.now()) // <--- CAMBIO AQUÍ
+                .stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+    }
+
+    // Modifica este también
+    public List<MatchResponseDto> getPastMatches(Long leagueId) {
+        return matchRepository.findByLeagueIdAndMatchDateBefore(leagueId, LocalDateTime.now()) // <--- CAMBIO AQUÍ
+                .stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
     }
 }

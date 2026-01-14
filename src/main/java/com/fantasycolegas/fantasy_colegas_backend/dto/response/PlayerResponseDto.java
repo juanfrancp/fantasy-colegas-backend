@@ -23,6 +23,26 @@ public class PlayerResponseDto {
     private String name;
     private String image;
     private Integer totalPoints;
-    private double totalFieldPoints;
-    private double totalGoalkeeperPoints;
+
+    private Double totalFieldPoints;
+    private Double totalGoalkeeperPoints;
+
+    // --- NUEVOS CAMPOS PARA EDICIÓN ---
+    // Usamos objetos (Integer/Boolean) para permitir nulos si no hay stats
+    private Integer golesMarcados;
+    private Integer asistencias;
+    private Integer fallosClarosDeGol;
+    private Integer faltasCometidas;
+    private Integer faltasRecibidas;
+    private Integer penaltisCometidos;
+    private Integer penaltisRecibidos;
+    private Integer tarjetasAmarillas;
+    private Integer tarjetasRojas;
+    private Integer salvadasDeGol;
+
+    // Portero
+    private Integer paradasComoPortero;
+    private Integer golesEncajadosComoPortero;
+    private Integer penaltisParados;
+    private Boolean porteriaImbatida;
 }

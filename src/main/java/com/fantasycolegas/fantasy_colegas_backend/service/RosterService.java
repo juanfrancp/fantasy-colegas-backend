@@ -255,28 +255,28 @@ public class RosterService {
 
         List<Player> availablePlayers = playerRepository.findAvailablePlayers(leagueId, currentPlayerIds);
 
-        // CORRECCIÓN AQUÍ
         return availablePlayers.stream()
                 .map(player -> {
-                    // Consultamos los puntos desglosados (Campo vs Portero)
+                    // 1. Consultamos los puntos
                     Double fieldPoints = playerMatchStatsRepository.sumTotalFieldPointsByPlayer(player.getId());
                     Double gkPoints = playerMatchStatsRepository.sumTotalGoalkeeperPointsByPlayer(player.getId());
 
-                    // Aseguramos que no sean nulos
+                    // 2. Protección contra nulos
                     if (fieldPoints == null) fieldPoints = 0.0;
                     if (gkPoints == null) gkPoints = 0.0;
 
                     int totalCalculated = (int) (fieldPoints + gkPoints);
 
-                    // Llamamos al nuevo constructor de 6 argumentos
-                    return new PlayerResponseDto(
-                            player.getId(),
-                            player.getName(),
-                            player.getImage(),
-                            totalCalculated, // Total
-                            fieldPoints,     // Puntos Campo
-                            gkPoints
-                    );
+                    // 3. SOLUCIÓN: Usar constructor vacío + Setters
+                    PlayerResponseDto dto = new PlayerResponseDto();
+                    dto.setId(player.getId());
+                    dto.setName(player.getName());
+                    dto.setImage(player.getImage());
+                    dto.setTotalPoints(totalCalculated);
+                    dto.setTotalFieldPoints(fieldPoints);
+                    dto.setTotalGoalkeeperPoints(gkPoints);
+
+                    return dto;
                 })
                 .collect(Collectors.toList());
     }

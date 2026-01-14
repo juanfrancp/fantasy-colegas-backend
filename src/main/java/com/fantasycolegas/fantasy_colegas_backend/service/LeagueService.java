@@ -701,26 +701,30 @@ public class LeagueService {
      * Corregido para incluir el desglose de puntos (Campo vs Portero).
      */
     private PlayerResponseDto mapToPlayerResponseDto(Player player) {
-        // 1. Obtenemos los puntos desglosados usando las nuevas consultas del repositorio
+        // 1. Obtenemos los puntos desglosados
         Double fieldPoints = playerMatchStatsRepository.sumTotalFieldPointsByPlayer(player.getId());
         Double gkPoints = playerMatchStatsRepository.sumTotalGoalkeeperPointsByPlayer(player.getId());
 
-        // 2. Protección contra nulos (aunque el COALESCE del repositorio debería evitarlo)
+        // 2. Protección contra nulos
         if (fieldPoints == null) fieldPoints = 0.0;
         if (gkPoints == null) gkPoints = 0.0;
 
-        // 3. (Opcional) Recalcular el total para asegurar consistencia
+        // 3. Recalcular total
         int totalCalculated = (int) (fieldPoints + gkPoints);
 
-        // 4. Devolvemos el DTO con los 6 argumentos que ahora requiere el constructor
-        return new PlayerResponseDto(
-                player.getId(),
-                player.getName(),
-                player.getImage(),
-                totalCalculated, // O usa player.getTotalPoints() si prefieres el valor guardado
-                fieldPoints,
-                gkPoints
-        );
+        // 4. SOLUCIÓN: Usar constructor vacío y setters
+        PlayerResponseDto dto = new PlayerResponseDto();
+        dto.setId(player.getId());
+        dto.setName(player.getName());
+        dto.setImage(player.getImage());
+        dto.setTotalPoints(totalCalculated);
+        dto.setTotalFieldPoints(fieldPoints);
+        dto.setTotalGoalkeeperPoints(gkPoints);
+
+        // Los campos de estadísticas detalladas (goles, etc.) se quedan en null,
+        // que es lo correcto porque aquí solo estamos listando jugadores de la liga.
+
+        return dto;
     }
 
     /**

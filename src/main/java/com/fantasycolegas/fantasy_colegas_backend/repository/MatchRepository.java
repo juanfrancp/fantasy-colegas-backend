@@ -48,4 +48,9 @@ public interface MatchRepository extends JpaRepository<Match, Long> {
     List<Match> findByMatchDateBefore(LocalDateTime date);
 
     List<Match> findByStatusAndMatchDateBefore(MatchStatus status, LocalDateTime date);
+
+    List<Match> findByLeagueIdAndMatchDateAfter(Long leagueId, LocalDateTime date);
+
+    List<Match> findByLeagueIdAndMatchDateBefore(Long leagueId, LocalDateTime date);
+
 }

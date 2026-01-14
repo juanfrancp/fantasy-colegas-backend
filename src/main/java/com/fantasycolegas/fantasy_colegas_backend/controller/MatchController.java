@@ -27,18 +27,6 @@ public class MatchController {
         return new ResponseEntity<>(createdMatch, HttpStatus.CREATED);
     }
 
-    @GetMapping("/upcoming")
-    public ResponseEntity<List<MatchResponseDto>> getUpcomingMatches() {
-        List<MatchResponseDto> upcomingMatches = matchService.getUpcomingMatches();
-        return ResponseEntity.ok(upcomingMatches);
-    }
-
-    @GetMapping("/past")
-    public ResponseEntity<List<MatchResponseDto>> getPastMatches() {
-        List<MatchResponseDto> pastMatches = matchService.getPastMatches();
-        return ResponseEntity.ok(pastMatches);
-    }
-
     @PutMapping("/{matchId}")
     public ResponseEntity<MatchResponseDto> updateMatch(
             @PathVariable Long matchId,
@@ -59,5 +47,17 @@ public class MatchController {
     public ResponseEntity<Void> startMatch(@PathVariable Long matchId) {
         matchService.lockMatchAndSnapshot(matchId);
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/upcoming")
+    public ResponseEntity<List<MatchResponseDto>> getUpcomingMatches(@RequestParam Long leagueId) { // <--- RequestParam
+        List<MatchResponseDto> upcomingMatches = matchService.getUpcomingMatches(leagueId);
+        return ResponseEntity.ok(upcomingMatches);
+    }
+
+    @GetMapping("/past")
+    public ResponseEntity<List<MatchResponseDto>> getPastMatches(@RequestParam Long leagueId) { // <--- RequestParam
+        List<MatchResponseDto> pastMatches = matchService.getPastMatches(leagueId);
+        return ResponseEntity.ok(pastMatches);
     }
 }

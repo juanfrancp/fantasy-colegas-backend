@@ -233,17 +233,26 @@ public class PlayerService {
         Double fieldPoints = playerMatchStatsRepository.sumTotalFieldPointsByPlayer(player.getId());
         Double gkPoints = playerMatchStatsRepository.sumTotalGoalkeeperPointsByPlayer(player.getId());
 
-        // Calculamos el total sumando ambos (más fiable que player.getTotalPoints() si este está desactualizado)
+        // Manejo de nulos por seguridad
+        if (fieldPoints == null) fieldPoints = 0.0;
+        if (gkPoints == null) gkPoints = 0.0;
+
+        // Calculamos el total sumando ambos
         int calculatedTotal = (int) (fieldPoints + gkPoints);
 
-        return new PlayerResponseDto(
-                player.getId(),
-                player.getName(),
-                player.getImage(),
-                calculatedTotal, // Usamos el total calculado
-                fieldPoints,     // Puntos como jugador de campo
-                gkPoints         // Puntos como portero
-        );
+        // CORRECCIÓN: Usamos el constructor vacío y setters
+        PlayerResponseDto dto = new PlayerResponseDto();
+        dto.setId(player.getId());
+        dto.setName(player.getName());
+        dto.setImage(player.getImage());
+        dto.setTotalPoints(calculatedTotal);
+        dto.setTotalFieldPoints(fieldPoints);
+        dto.setTotalGoalkeeperPoints(gkPoints);
+
+        // El resto de campos (golesMarcados, asistencias, etc.) se quedarán en null,
+        // que es lo correcto porque aquí estamos listando jugadores, no editando un partido.
+
+        return dto;
     }
 
     private PlayerResponseDto mapToPlayerResponseDto(Player player) {
