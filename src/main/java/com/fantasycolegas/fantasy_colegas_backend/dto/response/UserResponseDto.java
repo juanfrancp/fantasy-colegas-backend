@@ -1,5 +1,6 @@
 package com.fantasycolegas.fantasy_colegas_backend.dto.response;
 
+import com.fantasycolegas.fantasy_colegas_backend.model.enums.AppRole;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -24,4 +25,5 @@ public class UserResponseDto {
     private String username;
     private String email;
     private String profileImageUrl;
+    private AppRole appRole;
 }

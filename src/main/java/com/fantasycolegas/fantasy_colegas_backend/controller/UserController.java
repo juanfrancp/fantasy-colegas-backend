@@ -1,6 +1,7 @@
 package com.fantasycolegas.fantasy_colegas_backend.controller;
 
 import com.fantasycolegas.fantasy_colegas_backend.dto.request.PasswordUpdateDto;
+import com.fantasycolegas.fantasy_colegas_backend.dto.request.UserRoleUpdateDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.request.UserUpdateDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.response.UserResponseDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.response.UserUpdateResponseDto;
@@ -60,7 +61,7 @@ public class UserController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<UserResponseDto> getCurrentUser(@AuthenticationPrincipal CustomUserDetails currentUser) {
         return userService.getUserById(currentUser.getId())
-                .map(user -> new UserResponseDto(user.getId(), user.getUsername(), user.getEmail(), user.getProfileImageUrl()))
+                .map(user -> new UserResponseDto(user.getId(), user.getUsername(), user.getEmail(), user.getProfileImageUrl(), user.getAppRole()))
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
@@ -80,6 +81,21 @@ public class UserController {
         String username = authentication.getName();
 
         UserResponseDto responseDto = userService.updateUserProfileImage(username, file);
+
+        return ResponseEntity.ok(responseDto);
+    }
+
+    @PutMapping("/{id}/role")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<UserResponseDto> updateUserRole(@PathVariable Long id, @RequestBody UserRoleUpdateDto dto) {
+        User updatedUser = userService.changeUserRole(id, dto.getNewRole());
+        UserResponseDto responseDto = new UserResponseDto(
+                updatedUser.getId(),
+                updatedUser.getUsername(),
+                updatedUser.getEmail(),
+                updatedUser.getProfileImageUrl(),
+                updatedUser.getAppRole()
+        );
 
         return ResponseEntity.ok(responseDto);
     }

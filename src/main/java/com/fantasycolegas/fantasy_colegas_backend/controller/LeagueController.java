@@ -430,7 +430,7 @@ public class LeagueController {
     public ResponseEntity<List<UserResponseDto>> getLeagueMembers(@PathVariable Long leagueId) {
         List<User> members = leagueService.getLeagueMembers(leagueId);
         List<UserResponseDto> membersDto = members.stream()
-                .map(user -> new UserResponseDto(user.getId(), user.getUsername(), user.getEmail(), user.getProfileImageUrl()))
+                .map(user -> new UserResponseDto(user.getId(), user.getUsername(), user.getEmail(), user.getProfileImageUrl(), user.getAppRole()))
                 .collect(Collectors.toList());
         return ResponseEntity.ok(membersDto);
     }

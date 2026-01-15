@@ -1,5 +1,6 @@
 package com.fantasycolegas.fantasy_colegas_backend.model;
 
+import com.fantasycolegas.fantasy_colegas_backend.model.enums.AppRole;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Data;
@@ -43,6 +44,10 @@ public class User {
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference
     private Set<UserLeagueRole> leagueRoles = new HashSet<>();
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private AppRole appRole = AppRole.USER;
 
     @Override
     public boolean equals(Object o) {

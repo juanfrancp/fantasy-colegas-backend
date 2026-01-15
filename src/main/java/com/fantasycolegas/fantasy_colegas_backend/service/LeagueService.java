@@ -693,7 +693,7 @@ public class LeagueService {
      * @return El DTO de respuesta {@link UserResponseDto}.
      */
     private UserResponseDto mapToUserResponseDto(User user) {
-        return new UserResponseDto(user.getId(), user.getUsername(), user.getEmail(), user.getProfileImageUrl());
+        return new UserResponseDto(user.getId(), user.getUsername(), user.getEmail(), user.getProfileImageUrl(), user.getAppRole());
     }
 
     /**

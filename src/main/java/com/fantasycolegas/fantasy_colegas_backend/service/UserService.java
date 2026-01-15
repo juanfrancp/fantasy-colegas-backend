@@ -5,6 +5,7 @@ import com.fantasycolegas.fantasy_colegas_backend.dto.request.UserUpdateDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.response.UserResponseDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.response.UserUpdateResponseDto;
 import com.fantasycolegas.fantasy_colegas_backend.model.User;
+import com.fantasycolegas.fantasy_colegas_backend.model.enums.AppRole;
 import com.fantasycolegas.fantasy_colegas_backend.repository.UserRepository;
 import com.fantasycolegas.fantasy_colegas_backend.util.JwtUtil;
 import jakarta.transaction.Transactional;
@@ -159,6 +160,13 @@ public class UserService {
 
         user.setProfileImageUrl(imageUrl);
 
+        return userRepository.save(user);
+    }
+
+    public User changeUserRole(Long userId, AppRole newRole) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        user.setAppRole(newRole);
         return userRepository.save(user);
     }
 }

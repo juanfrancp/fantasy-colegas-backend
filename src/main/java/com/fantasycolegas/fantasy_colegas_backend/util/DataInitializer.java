@@ -2,11 +2,15 @@ package com.fantasycolegas.fantasy_colegas_backend.util;
 
 import com.fantasycolegas.fantasy_colegas_backend.model.Player;
 import com.fantasycolegas.fantasy_colegas_backend.model.ScoringRule;
+import com.fantasycolegas.fantasy_colegas_backend.model.User;
+import com.fantasycolegas.fantasy_colegas_backend.model.enums.AppRole;
 import com.fantasycolegas.fantasy_colegas_backend.model.enums.PlayerTeamRole;
 import com.fantasycolegas.fantasy_colegas_backend.repository.PlayerRepository;
 import com.fantasycolegas.fantasy_colegas_backend.repository.ScoringRuleRepository;
+import com.fantasycolegas.fantasy_colegas_backend.repository.UserRepository;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 /**
@@ -26,6 +30,8 @@ public class DataInitializer {
 
     private final PlayerRepository playerRepository;
     private final ScoringRuleRepository scoringRuleRepository;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
     /**
      * Constructor que inyecta las dependencias de los repositorios.
@@ -33,9 +39,11 @@ public class DataInitializer {
      * @param playerRepository      Repositorio de jugadores.
      * @param scoringRuleRepository Repositorio de reglas de puntuación.
      */
-    public DataInitializer(PlayerRepository playerRepository, ScoringRuleRepository scoringRuleRepository) {
+    public DataInitializer(PlayerRepository playerRepository, ScoringRuleRepository scoringRuleRepository, UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.playerRepository = playerRepository;
         this.scoringRuleRepository = scoringRuleRepository;
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     /**
@@ -107,5 +115,20 @@ public class DataInitializer {
         rule.setPointsPerUnit(pointsPerUnit);
         rule.setRole(playerTeamRole);
         return rule;
+    }
+
+    @EventListener(ApplicationReadyEvent.class)
+    public void initializeAdminUser() {
+        if (userRepository.findByUsername("admin").isEmpty()) {
+            User admin = new User();
+            admin.setUsername("admin");
+            admin.setEmail("admin@fantasycolegas.com");
+            admin.setPassword(passwordEncoder.encode("admin123"));
+            admin.setAppRole(AppRole.ADMIN);
+            admin.setProfileImageUrl("https://ui-avatars.com/api/?name=Admin&background=random");
+
+            userRepository.save(admin);
+            System.out.println("Usuario Administrador Global creado: admin / admin123");
+        }
     }
 }

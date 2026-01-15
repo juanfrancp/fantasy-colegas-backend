@@ -6,23 +6,23 @@ VALUES ('Jugador Vacío', NULL, 0, TRUE);
 -- # USUARIOS (15 usuarios en total)
 -- #####################################################################################
 -- La contraseña para todos es 'password'
-INSERT INTO users (username, email, password) VALUES
-('admin', 'admin@example.com', '$2a$10$33.QLLtdvpQf8cyZrS6JKuwVvCKxSMV/Vg4nHXHxuwDVR8QdcMquu'),
-('ana_trader', 'ana@example.com', '$2a$10$33.QLLtdvpQf8cyZrS6JKuwVvCKxSMV/Vg4nHXHxuwDVR8QdcMquu'),
-('carlos_pro', 'carlos@example.com', '$2a$10$33.QLLtdvpQf8cyZrS6JKuwVvCKxSMV/Vg4nHXHxuwDVR8QdcMquu'),
-('beatriz_rm', 'beatriz@example.com', '$2a$10$33.QLLtdvpQf8cyZrS6JKuwVvCKxSMV/Vg4nHXHxuwDVR8QdcMquu'),
-('david_crack', 'david@example.com', '$2a$10$33.QLLtdvpQf8cyZrS6JKuwVvCKxSMV/Vg4nHXHxuwDVR8QdcMquu'),
-('elena_goleadora', 'elena@example.com', '$2a$10$33.QLLtdvpQf8cyZrS6JKuwVvCKxSMV/Vg4nHXHxuwDVR8QdcMquu'),
-('fernando_manager', 'fernando@example.com', '$2a$10$33.QLLtdvpQf8cyZrS6JKuwVvCKxSMV/Vg4nHXHxuwDVR8QdcMquu'),
-('gloria_fan', 'gloria@example.com', '$2a$10$33.QLLtdvpQf8cyZrS6JKuwVvCKxSMV/Vg4nHXHxuwDVR8QdcMquu'),
-('hugo_pichichi', 'hugo@example.com', '$2a$10$33.QLLtdvpQf8cyZrS6JKuwVvCKxSMV/Vg4nHXHxuwDVR8QdcMquu'),
-('irene_defensa', 'irene@example.com', '$2a$10$33.QLLtdvpQf8cyZrS6JKuwVvCKxSMV/Vg4nHXHxuwDVR8QdcMquu'),
+INSERT INTO users (username, email, password, app_role) VALUES
+('admin', 'admin@example.com', '$2a$10$33.QLLtdvpQf8cyZrS6JKuwVvCKxSMV/Vg4nHXHxuwDVR8QdcMquu', 'ADMIN'),
+('ana_trader', 'ana@example.com', '$2a$10$33.QLLtdvpQf8cyZrS6JKuwVvCKxSMV/Vg4nHXHxuwDVR8QdcMquu', 'USER'),
+('carlos_pro', 'carlos@example.com', '$2a$10$33.QLLtdvpQf8cyZrS6JKuwVvCKxSMV/Vg4nHXHxuwDVR8QdcMquu', 'USER'),
+('beatriz_rm', 'beatriz@example.com', '$2a$10$33.QLLtdvpQf8cyZrS6JKuwVvCKxSMV/Vg4nHXHxuwDVR8QdcMquu', 'USER'),
+('david_crack', 'david@example.com', '$2a$10$33.QLLtdvpQf8cyZrS6JKuwVvCKxSMV/Vg4nHXHxuwDVR8QdcMquu', 'USER'),
+('elena_goleadora', 'elena@example.com', '$2a$10$33.QLLtdvpQf8cyZrS6JKuwVvCKxSMV/Vg4nHXHxuwDVR8QdcMquu', 'USER'),
+('fernando_manager', 'fernando@example.com', '$2a$10$33.QLLtdvpQf8cyZrS6JKuwVvCKxSMV/Vg4nHXHxuwDVR8QdcMquu', 'USER'),
+('gloria_fan', 'gloria@example.com', '$2a$10$33.QLLtdvpQf8cyZrS6JKuwVvCKxSMV/Vg4nHXHxuwDVR8QdcMquu', 'USER'),
+('hugo_pichichi', 'hugo@example.com', '$2a$10$33.QLLtdvpQf8cyZrS6JKuwVvCKxSMV/Vg4nHXHxuwDVR8QdcMquu', 'USER'),
+('irene_defensa', 'irene@example.com', '$2a$10$33.QLLtdvpQf8cyZrS6JKuwVvCKxSMV/Vg4nHXHxuwDVR8QdcMquu', 'USER'),
 -- Usuarios sin liga para probar solicitudes y unirse
-('laura_newbie', 'laura@example.com', '$2a$10$33.QLLtdvpQf8cyZrS6JKuwVvCKxSMV/Vg4nHXHxuwDVR8QdcMquu'),
-('marcos_aspirante', 'marcos@example.com', '$2a$10$33.QLLtdvpQf8cyZrS6JKuwVvCKxSMV/Vg4nHXHxuwDVR8QdcMquu'),
-('nadia_sin_equipo', 'nadia@example.com', '$2a$10$33.QLLtdvpQf8cyZrS6JKuwVvCKxSMV/Vg4nHXHxuwDVR8QdcMquu'),
-('oscar_observador', 'oscar@example.com', '$2a$10$33.QLLtdvpQf8cyZrS6JKuwVvCKxSMV/Vg4nHXHxuwDVR8QdcMquu'),
-('pepe_leyenda', 'pepe@example.com', '$2a$10$33.QLLtdvpQf8cyZrS6JKuwVvCKxSMV/Vg4nHXHxuwDVR8QdcMquu');
+('laura_newbie', 'laura@example.com', '$2a$10$33.QLLtdvpQf8cyZrS6JKuwVvCKxSMV/Vg4nHXHxuwDVR8QdcMquu', 'USER'),
+('marcos_aspirante', 'marcos@example.com', '$2a$10$33.QLLtdvpQf8cyZrS6JKuwVvCKxSMV/Vg4nHXHxuwDVR8QdcMquu', 'USER'),
+('nadia_sin_equipo', 'nadia@example.com', '$2a$10$33.QLLtdvpQf8cyZrS6JKuwVvCKxSMV/Vg4nHXHxuwDVR8QdcMquu', 'USER'),
+('oscar_observador', 'oscar@example.com', '$2a$10$33.QLLtdvpQf8cyZrS6JKuwVvCKxSMV/Vg4nHXHxuwDVR8QdcMquu', 'USER'),
+('pepe_leyenda', 'pepe@example.com', '$2a$10$33.QLLtdvpQf8cyZrS6JKuwVvCKxSMV/Vg4nHXHxuwDVR8QdcMquu', 'USER');
 
 
 -- #####################################################################################

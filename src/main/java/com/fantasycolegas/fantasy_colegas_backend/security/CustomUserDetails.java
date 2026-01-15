@@ -58,6 +58,7 @@ public class CustomUserDetails implements UserDetails {
         List<GrantedAuthority> authorities = user.getLeagueRoles().stream()
                 .map(role -> new SimpleGrantedAuthority("ROLE_" + role.getRole()))
                 .collect(Collectors.toList());
+        authorities.add(new SimpleGrantedAuthority("ROLE_" + user.getAppRole().name()));
 
         return new CustomUserDetails(user.getId(), user.getUsername(), user.getPassword(), authorities);
     }
