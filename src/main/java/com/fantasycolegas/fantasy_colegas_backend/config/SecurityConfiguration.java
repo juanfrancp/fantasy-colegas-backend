@@ -104,11 +104,21 @@ public class SecurityConfiguration {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("https://lacoleague.netlify.app/", "http://localhost:*", "http://127.0.0.1:*"));
+
+        // --- CAMBIO AQUÍ ---
+        // Usamos setAllowedOriginPatterns en lugar de setAllowedOrigins
+        // Esto permite que el * funcione como comodín para cualquier puerto
+        configuration.setAllowedOriginPatterns(List.of(
+                "https://fantasy-colegas.netlify.app", // Tu web en producción
+                "http://localhost:*",                  // Localhost en cualquier puerto
+                "http://127.0.0.1:*"                   // IP local en cualquier puerto
+        ));
+        // -------------------
 
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "x-auth-token"));
         configuration.setExposedHeaders(List.of("x-auth-token"));
+        configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
