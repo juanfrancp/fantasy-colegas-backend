@@ -3,6 +3,7 @@ package com.fantasycolegas.fantasy_colegas_backend.controller;
 import com.fantasycolegas.fantasy_colegas_backend.dto.request.LoginDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.request.RegisterDto;
 import com.fantasycolegas.fantasy_colegas_backend.dto.response.AuthResponse;
+import com.fantasycolegas.fantasy_colegas_backend.dto.response.ErrorResponse;
 import com.fantasycolegas.fantasy_colegas_backend.service.AuthService;
 import com.fantasycolegas.fantasy_colegas_backend.service.CustomUserDetailsService;
 import com.fantasycolegas.fantasy_colegas_backend.util.JwtUtil;
@@ -18,6 +19,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.util.Collections;
 
 /**
  * @author Juan Francisco Carceles
@@ -81,14 +85,16 @@ public class AuthController {
      */
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@Valid @RequestBody RegisterDto registerDto) {
-        try{
-            if (authService.registerUser(registerDto)) {
-                return new ResponseEntity<>("User registered successfully", HttpStatus.OK);
-            } else {
-                return new ResponseEntity<>("Username or email already in use", HttpStatus.BAD_REQUEST);
-            }
+        try {
+            authService.registerUser(registerDto);
+
+            return new ResponseEntity<>(Collections.singletonMap("message", "User registered successfully"), HttpStatus.OK);
+
+        } catch (ResponseStatusException e) {
+            return new ResponseEntity<>(new ErrorResponse(e.getReason()), e.getStatusCode());
+
         } catch (RuntimeException e) {
-            return new ResponseEntity<>("An unexpected error occurred", HttpStatus.INTERNAL_SERVER_ERROR);
+            return new ResponseEntity<>(new ErrorResponse("An unexpected error occurred"), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 }
