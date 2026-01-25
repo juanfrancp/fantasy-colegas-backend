@@ -802,12 +802,10 @@ public class LeagueService {
 
         String fileName = fileStorageService.storeFile(file, "league-pics");
 
-        String filePath = "/uploads/league-pics/" + fileName;
-
-        league.setImage(filePath);
+        league.setImage(fileName);
         leagueRepository.save(league);
 
-        return filePath;
+        return fileName;
     }
 
     @Transactional

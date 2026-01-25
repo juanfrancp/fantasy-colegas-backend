@@ -84,7 +84,7 @@ public class PlayerService {
         MultipartFile imageFile = playerUpdateDto.getImage();
         if (imageFile != null && !imageFile.isEmpty()) {
             String imageUrl = fileStorageService.storeFile(imageFile, "player-pics");
-            player.setImage("/uploads/player-pics/" +  imageUrl);
+            player.setImage(imageUrl);
         }
 
 
@@ -120,7 +120,7 @@ public class PlayerService {
 
         if (imageFile != null && !imageFile.isEmpty()) {
             String imageUrl = fileStorageService.storeFile(imageFile, "player-pics");
-            player.setImage("/uploads/player-pics/" +  imageUrl);
+            player.setImage(imageUrl);
         }
 
         Player savedPlayer = playerRepository.save(player);

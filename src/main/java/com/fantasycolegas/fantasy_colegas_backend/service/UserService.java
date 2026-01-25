@@ -140,9 +140,8 @@ public class UserService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado"));
 
         String fileName = fileStorageService.storeFile(file, "profile-pics");
-        String fileDownloadUri = "/uploads/profile-pics/" + fileName;
 
-        user.setProfileImageUrl(fileDownloadUri);
+        user.setProfileImageUrl(fileName);
         User updatedUser = userRepository.save(user);
 
         UserResponseDto responseDto = new UserResponseDto();
